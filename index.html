@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Manim Blocks - First Test</title>
+</head>
+<body>
+
+  <div id="blocklyDiv" style="height: 480px; width: 800px;"></div>
+
+  <button id="showCodeButton">Show Generated Code</button>
+  <pre id="outputArea"></pre>
+
+  <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+
+  <script>
+    var toolbox = {
+      "kind": "categoryToolbox",
+      "contents": [
+        {
+          "kind": "category",
+          "name": "Logic",
+          "categorystyle": "logic_category",
+          "contents": [
+            { "kind": "block", "type": "controls_if" },
+            { "kind": "block", "type": "logic_compare" }
+          ]
+        },
+        {
+          "kind": "category",
+          "name": "Math",
+          "categorystyle": "math_category",
+          "contents": [
+            { "kind": "block", "type": "math_number" },
+            { "kind": "block", "type": "math_arithmetic" }
+          ]
+        },
+        {
+          "kind": "category",
+          "name": "Variables",
+          "categorystyle": "variable_category",
+          "custom": "VARIABLE"
+        }
+      ]
+    };
+
+    var workspace = Blockly.inject('blocklyDiv', {
+      toolbox: toolbox
+    });
+
+    document.getElementById('showCodeButton').addEventListener('click', function() {
+      var code = Blockly.JavaScript.workspaceToCode(workspace);
+      document.getElementById('outputArea').textContent = code;
+    });
+  </script>
+
+</body>
+</html>
