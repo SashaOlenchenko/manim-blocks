@@ -17,13 +17,13 @@
   <script src="https://unpkg.com/blockly/msg/en.js"></script>
 
   <script>
-    // ---- 1. Define the block's shape and fields ----
+    // ---- 1. Define the blocks ----
     Blockly.Blocks['circle'] = {
       init: function() {
         this.appendDummyInput()
             .appendField("Circle")
             .appendField("radius")
-            .appendField(new Blockly.FieldNumber(1, 0), "RADIUS")
+            .appendField(new Blockly.FieldNumber(1, 0, 100), "RADIUS")
             .appendField("color")
             .appendField(new Blockly.FieldDropdown([
               ["red", "RED"],
@@ -37,12 +37,40 @@
         this.setTooltip("Creates a circle Mobject");
       }
     };
-
-    // ---- 2. Define how this block turns into Python code ----
+    Blockly.Blocks['rectangle'] = {
+      init: function() {
+        this.appendDummyInput()
+            .appendField("Rectangle")
+            .appendField("width")
+            .appendField(new Blockly.FieldNumber(2, 0, 100), "WIDTH")
+            .appendField("height")
+            .appendField(new Blockly.FieldNumber(1, 0, 100), "HEIGHT")
+            .appendField("color")
+            .appendField(new Blockly.FieldDropdown([
+              ["red", "RED"],
+              ["blue", "BLUE"],
+              ["green", "GREEN"],
+              ["yellow", "YELLOW"],
+              ["white", "WHITE"]
+            ]), "COLOR");
+        this.setOutput(true, "Mobject");
+        this.setColour(230);
+        this.setTooltip("Creates a rectangle Mobject");
+      }
+    };
+    
+    // ---- 2. Define blocks turn into Python code ----
     python.pythonGenerator.forBlock['circle'] = function(block, generator) {
       var radius = block.getFieldValue('RADIUS');
       var color = block.getFieldValue('COLOR');
       var code = 'Circle(radius=' + radius + ', color=' + color + ')';
+      return [code, python.Order.FUNCTION_CALL];
+    };
+    python.pythonGenerator.forBlock['rectangle'] = function(block, generator) {
+      var width = block.getFieldValue('WIDTH');
+      var height = block.getFieldValue('HEIGHT');
+      var color = block.getFieldValue('COLOR');
+      var code = 'Rectangle(width=' + width + ', height='+height+', color=' + color + ')';
       return [code, python.Order.FUNCTION_CALL];
     };
 
@@ -55,7 +83,12 @@
           "name": "Mobjects",
           "colour": "230",
           "contents": [
-            { "kind": "block", "type": "circle" }
+            { 
+              "kind": "block", "type": "circle"
+            },
+            {
+              "kind": "block", "type": "rectangle"
+            }
           ]
         },
         {
