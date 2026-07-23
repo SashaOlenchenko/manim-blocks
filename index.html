@@ -59,6 +59,52 @@
       }
     };
     
+    // ---- Animation blocks (statement blocks, not value blocks) ----
+    Blockly.Blocks['anim_create'] = {
+      init: function() {
+        this.appendValueInput("MOBJECT")
+            .setCheck("Mobject")
+            .appendField("Create");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(260);
+        this.setTooltip("Plays the Create animation on a Mobject");
+      }
+    };
+    Blockly.Blocks['anim_fadein'] = {
+      init: function() {
+        this.appendValueInput("MOBJECT")
+            .setCheck("Mobject")
+            .appendField("FadeIn");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(260);
+        this.setTooltip("Plays the FadeIn animation on a Mobject");
+      }
+    };
+    Blockly.Blocks['anim_fadeout'] = {
+      init: function() {
+        this.appendValueInput("MOBJECT")
+            .setCheck("Mobject")
+            .appendField("FadeOut");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(260);
+        this.setTooltip("Plays the FadeOut animation on a Mobject");
+      }
+    };
+    Blockly.Blocks['anim_wait'] = {
+      init: function() {
+        this.appendDummyInput()
+            .appendField("Wait")
+            .appendField(new Blockly.FieldNumber(1, 0), "DURATION");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(260);
+        this.setTooltip("Pauses the animation for a number of seconds");
+      }
+    };
+
     // ---- 2. Define blocks turn into Python code ----
     python.pythonGenerator.forBlock['circle'] = function(block, generator) {
       var radius = block.getFieldValue('RADIUS');
@@ -72,6 +118,23 @@
       var color = block.getFieldValue('COLOR');
       var code = 'Rectangle(width=' + width + ', height='+height+', color=' + color + ')';
       return [code, python.Order.FUNCTION_CALL];
+    };
+
+    python.pythonGenerator.forBlock['anim_create'] = function(block, generator) {
+      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
+      return 'self.play(Create(' + mobject + '))\n';
+    };
+    python.pythonGenerator.forBlock['anim_fadein'] = function(block, generator) {
+      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
+      return 'self.play(FadeIn(' + mobject + '))\n';
+    };
+    python.pythonGenerator.forBlock['anim_fadeout'] = function(block, generator) {
+      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
+      return 'self.play(FadeOut(' + mobject + '))\n';
+    };
+    python.pythonGenerator.forBlock['anim_wait'] = function(block, generator) {
+      var duration = block.getFieldValue('DURATION');
+      return 'self.wait(' + duration + ')\n';
     };
 
     // ---- 3. Toolbox: add a Mobjects category containing our new block ----
@@ -89,6 +152,17 @@
             {
               "kind": "block", "type": "rectangle"
             }
+          ]
+        },
+        {
+          "kind": "category",
+          "name": "Animations",
+          "colour": "260",
+          "contents": [
+            { "kind": "block", "type": "anim_create" },
+            { "kind": "block", "type": "anim_fadein" },
+            { "kind": "block", "type": "anim_fadeout" },
+            { "kind": "block", "type": "anim_wait" }
           ]
         },
         {
