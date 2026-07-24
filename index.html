@@ -71,6 +71,17 @@
         this.setTooltip("Plays the Create animation on a Mobject");
       }
     };
+    Blockly.Blocks['anim_uncreate'] = {
+      init: function() {
+        this.appendValueInput("MOBJECT")
+            .setCheck("Mobject")
+            .appendField("Uncreate");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(260);
+        this.setTooltip("Plays the Uncreate animation on a Mobject");
+      }
+    };
     Blockly.Blocks['anim_fadein'] = {
       init: function() {
         this.appendValueInput("MOBJECT")
@@ -97,7 +108,7 @@
       init: function() {
         this.appendDummyInput()
             .appendField("Wait")
-            .appendField(new Blockly.FieldNumber(1, 0), "DURATION");
+            .appendField(new Blockly.FieldNumber(1, 0, 10), "DURATION");
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
         this.setColour(260);
@@ -106,6 +117,7 @@
     };
 
     // ---- 2. Define blocks turn into Python code ----
+    // ---- Mobjects
     python.pythonGenerator.forBlock['circle'] = function(block, generator) {
       var radius = block.getFieldValue('RADIUS');
       var color = block.getFieldValue('COLOR');
@@ -119,10 +131,14 @@
       var code = 'Rectangle(width=' + width + ', height='+height+', color=' + color + ')';
       return [code, python.Order.FUNCTION_CALL];
     };
-
+    // ---- Animations
     python.pythonGenerator.forBlock['anim_create'] = function(block, generator) {
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
       return 'self.play(Create(' + mobject + '))\n';
+    };
+    python.pythonGenerator.forBlock['anim_uncreate'] = function(block, generator) {
+      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
+      return 'self.play(Unreate(' + mobject + '))\n';
     };
     python.pythonGenerator.forBlock['anim_fadein'] = function(block, generator) {
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
@@ -160,6 +176,7 @@
           "colour": "260",
           "contents": [
             { "kind": "block", "type": "anim_create" },
+            { "kind": "block", "type": "anim_uncreate" },
             { "kind": "block", "type": "anim_fadein" },
             { "kind": "block", "type": "anim_fadeout" },
             { "kind": "block", "type": "anim_wait" }
