@@ -130,7 +130,27 @@
         this.setTooltip("Plays several animations together, optionally staggered by a lag ratio");
       }
     };
-
+    // ---- Positioning blocks ----
+    Blockly.Blocks['move_to'] = {
+      init: function() {
+        this.appendDummyInput('')
+          .appendField('Move');
+        this.appendValueInput('MOBJECT')
+          .setCheck('Mobject');
+        this.appendDummyInput('')
+          .appendField('to')
+          .appendField(new Blockly.FieldNumber(0), 'X')
+          .appendField('x')
+          .appendField(new Blockly.FieldNumber(0), 'Y')
+          .appendField('y');
+        this.setInputsInline(true)
+        this.setPreviousStatement(true, 'Action');
+        this.setNextStatement(true, 'Action');
+        this.setColour(225);
+      }
+            
+      };
+    
     // ---- 2. Define blocks turn into Python code ----
     python.pythonGenerator.forBlock['circle'] = function(block, generator) {
       var radius = block.getFieldValue('RADIUS');
@@ -201,6 +221,12 @@
       var animsCode = generator.statementToCode(block, 'ANIMATIONS');
       return 'self.play(AnimationGroup(\n' + animsCode + generator.INDENT + 'lag_ratio=' + lagRatio + '\n))\n';
     };
+    python.pythonGenerator.forBlock['move_to'] = function(block, generator) {
+      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
+      var x = block.getFieldValue('X')
+      var y = block.getFieldValue('Y')
+      return mobject + '.move_to([' + x + ', ' + y + ', 0])\n'
+    }
 
     // ---- 3. Toolbox: add a Mobjects category containing our new block ----
     var toolbox = {
@@ -237,6 +263,13 @@
           "name": "Variables",
           "categorystyle": "variable_category",
           "custom": "VARIABLE"
+        },
+        {"kind": "category",
+          "name": "Positioning",
+          "colour": "225",
+          "contents": [
+            {"kind": "block", "type": "move_to"}
+          ]
         }
       ]
     };
