@@ -144,13 +144,74 @@
           .appendField(new Blockly.FieldNumber(0), 'Y')
           .appendField('y');
         this.setInputsInline(true)
-        this.setPreviousStatement(true, 'Action');
-        this.setNextStatement(true, 'Action');
+        this.setPreviousStatement(true, "Action");
+        this.setNextStatement(true, "Action");
         this.setColour(225);
       }
             
       };
     
+    Blockly.Blocks['shift'] = {
+      init: function() {
+        this.appendDummyInput('')
+          .appendField('Shift');
+        this.appendValueInput('MOBJECT')
+          .setCheck('Mobject');
+        this.appendDummyInput('')
+          .appendField('by')
+          .appendField(new Blockly.FieldNumber(0), 'DX')
+          .appendField('x')
+          .appendField(new Blockly.FieldNumber(0), 'DY')
+          .appendField('y');
+        this.setInputsInline(true);
+        this.setPreviousStatement(true, "Action");
+        this.setNextStatement(true, "Action");
+        this.setColour(225);
+      }
+    };
+    Blockly.Blocks['next_to'] = {
+      init: function() {
+        this.appendValueInput('MOBJECT')
+          .setCheck('Mobject');
+        this.appendDummyInput('')
+          .appendField('next to');
+        this.appendValueInput('REFERENCE')
+          .setCheck('Mobject');  
+        this.appendDummyInput('')
+          .appendField(new Blockly.FieldDropdown([
+              ["right", "RIGHT"],
+              ["left", "LEFT"],
+              ["up", "UP"],
+              ["down", "DOWN"]
+            ]), "DIR");
+        this.appendDummyInput('')
+          .appendField('buff');
+        this.appendDummyInput('')
+          .appendField(new Blockly.FieldNumber(0.5, 0, 5), 'BUFF');
+        this.setInputsInline(true)
+        this.setPreviousStatement(true, "Action");
+        this.setNextStatement(true, "Action");
+        this.setColour(225);
+      }
+    };
+    Blockly.Blocks['to_edge'] = {
+      init: function() {
+        this.appendValueInput('MOBJECT')
+          .setCheck('Mobject');
+        this.appendDummyInput('')
+          .appendField('to edge')
+          .appendField(new Blockly.FieldDropdown([
+            ["right", "RIGHT"],
+              ["left", "LEFT"],
+              ["up", "UP"],
+              ["down", "DOWN"]
+          ]), 'DIR');
+        this.setInputsInline(true);
+        this.setPreviousStatement(true, "Action");
+        this.setNextStatement(true, "Action");
+        this.setColour(225);
+      }
+    };
     // ---- 2. Define blocks turn into Python code ----
     python.pythonGenerator.forBlock['circle'] = function(block, generator) {
       var radius = block.getFieldValue('RADIUS');
@@ -226,7 +287,26 @@
       var x = block.getFieldValue('X')
       var y = block.getFieldValue('Y')
       return mobject + '.move_to([' + x + ', ' + y + ', 0])\n'
-    }
+    };
+
+    python.pythonGenerator.forBlock['shift'] = function(block, generator) {
+      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
+      var dx = block.getFieldValue('DX');
+      var dy = block.getFieldValue('DY');
+      return mobject + '.shift([' + dx + ', ' + dy + ', 0])\n';
+    };
+    python.pythonGenerator.forBlock['next_to'] = function(block, generator) {
+      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
+      var ref = generator.valueToCode(block, "REFERENCE", python.Order.NONE) || 'None';
+      var dir = block.getFieldValue('DIR');
+      var buff = block.getFieldValue('BUFF');
+      return mobject + '.next_to(' + ref + ', ' + dir + ', buff=' + buff + ')\n';
+    };
+    python.pythonGenerator.forBlock['to_edge'] = function(block, generator) {
+      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
+      var dir = block.getFieldValue('DIR');
+      return mobject + '.to_edge(' + dir + ')\n';
+    };
 
     // ---- 3. Toolbox: add a Mobjects category containing our new block ----
     var toolbox = {
@@ -268,7 +348,11 @@
           "name": "Positioning",
           "colour": "225",
           "contents": [
-            {"kind": "block", "type": "move_to"}
+            {"kind": "block", "type": "move_to"},
+            {"kind": "block", "type": "shift"},
+            {"kind": "block", "type": "next_to"},
+            {"kind": "block", "type": "to_edge"}
+            
           ]
         }
       ]
