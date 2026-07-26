@@ -212,6 +212,38 @@
         this.setColour(225);
       }
     };
+    Blockly.Blocks['to_corner'] = {
+      init: function() {
+        this.appendValueInput('MOBJECT')
+          .setCheck('Mobject');
+        this.appendDummyInput('')
+          .appendField('to corner')
+          .appendField(new Blockly.FieldDropdown([
+            ["top-left", "UL"],
+            ["top-right", "UR"],
+            ["bottom-left", "DL"],
+            ["bottom-right", "DR"]
+          ]), 'CORNER');
+        this.setInputsInline(true);
+        this.setPreviousStatement(true, "Action");
+        this.setNextStatement(true, "Action");
+        this.setColour(225);
+      }
+    };
+    Blockly.Blocks['rotate_by'] = {
+      init: function() {
+        this.appendValueInput('MOBJECT')
+          .setCheck('Mobject');
+        this.appendDummyInput('')
+          .appendField('rotate by')
+          .appendField(new Blockly.FieldNumber(90), 'ANGLE')
+          .appendField('degrees');
+        this.setInputsInline(true);
+        this.setPreviousStatement(true, "Action");
+        this.setNextStatement(true, "Action");
+        this.setColour(225);
+      }
+    };
     // ---- 2. Define blocks turn into Python code ----
     python.pythonGenerator.forBlock['circle'] = function(block, generator) {
       var radius = block.getFieldValue('RADIUS');
@@ -308,6 +340,17 @@
       return mobject + '.to_edge(' + dir + ')\n';
     };
 
+    python.pythonGenerator.forBlock['to_corner'] = function(block, generator) {
+      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
+      var corner = block.getFieldValue('CORNER');
+      return mobject + '.to_corner(' + corner + ')\n';
+    };
+    python.pythonGenerator.forBlock['rotate_by'] = function(block, generator) {
+      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
+      var angle = block.getFieldValue('ANGLE');
+      return mobject + '.rotate(' + angle + ' * DEGREES)\n';
+    };
+
     // ---- 3. Toolbox: add a Mobjects category containing our new block ----
     var toolbox = {
       "kind": "categoryToolbox",
@@ -351,7 +394,9 @@
             {"kind": "block", "type": "move_to"},
             {"kind": "block", "type": "shift"},
             {"kind": "block", "type": "next_to"},
-            {"kind": "block", "type": "to_edge"}
+            {"kind": "block", "type": "to_edge"},
+            {"kind": "block", "type": "to_corner"},
+            {"kind": "block", "type": "rotate_by"}
             
           ]
         }
