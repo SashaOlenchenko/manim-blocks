@@ -4,7 +4,7 @@ A visual, block-based editor for creating [Manim](https://www.manim.community/) 
 
 ## Status
 
-Early development. Currently testing the base Blockly setup before adding custom blocks.
+Early development. Creating basic blocks.
 
 ## Tech stack
 
@@ -18,6 +18,7 @@ Open `index.html` directly in a browser. No build step or install required yet.
 
 ## Project goals
 
-- Learn by building — understand every line of generated code, not just copy it
+- Create a code-free enviroment for generating Manim animations
 - Represent Manim's core workflow (create Mobjects → position them → animate them) as a block language
 - Compile the block stack into a runnable Manim Python script
+- Learn by building
