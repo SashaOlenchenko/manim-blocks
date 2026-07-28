@@ -130,6 +130,19 @@
         this.setTooltip("Plays several animations together, optionally staggered by a lag ratio");
       }
     };
+    Blockly.Blocks['apply_animation'] = {
+      init: function() {
+        this.appendValueInput('MOBJECT')
+          .setCheck('Mobject')
+          .appendField('Apply animation to');
+        this.appendStatementInput('METHODS')
+          .setCheck('Applyable');
+        this.setPreviousStatement(true, ["Animation", "Action"]);
+        this.setNextStatement(true, ["Animation", "Action"]);
+        this.setColour(200);
+        this.setTooltip("Animates one or more Positioning/Style changes on a Mobject using .animate");
+      }
+    };
     // ---- Positioning blocks ----
     Blockly.Blocks['move_to'] = {
       init: function() {
@@ -144,8 +157,8 @@
           .appendField(new Blockly.FieldNumber(0), 'Y')
           .appendField('y');
         this.setInputsInline(true)
-        this.setPreviousStatement(true, "Action");
-        this.setNextStatement(true, "Action");
+        this.setPreviousStatement(true, ["Action", "Applyable"]);
+        this.setNextStatement(true, ["Action", "Applyable"]);
         this.setColour(225);
       }
             
@@ -164,8 +177,8 @@
           .appendField(new Blockly.FieldNumber(0), 'DY')
           .appendField('y');
         this.setInputsInline(true);
-        this.setPreviousStatement(true, "Action");
-        this.setNextStatement(true, "Action");
+        this.setPreviousStatement(true, ["Action", "Applyable"]);
+        this.setNextStatement(true, ["Action", "Applyable"]);
         this.setColour(225);
       }
     };
@@ -189,8 +202,8 @@
         this.appendDummyInput('')
           .appendField(new Blockly.FieldNumber(0.5, 0, 5), 'BUFF');
         this.setInputsInline(true)
-        this.setPreviousStatement(true, "Action");
-        this.setNextStatement(true, "Action");
+        this.setPreviousStatement(true, ["Action", "Applyable"]);
+        this.setNextStatement(true, ["Action", "Applyable"]);
         this.setColour(225);
       }
     };
@@ -207,8 +220,8 @@
               ["down", "DOWN"]
           ]), 'DIR');
         this.setInputsInline(true);
-        this.setPreviousStatement(true, "Action");
-        this.setNextStatement(true, "Action");
+        this.setPreviousStatement(true, ["Action", "Applyable"]);
+        this.setNextStatement(true, ["Action", "Applyable"]);
         this.setColour(225);
       }
     };
@@ -225,8 +238,8 @@
             ["bottom-right", "DR"]
           ]), 'CORNER');
         this.setInputsInline(true);
-        this.setPreviousStatement(true, "Action");
-        this.setNextStatement(true, "Action");
+        this.setPreviousStatement(true, ["Action", "Applyable"]);
+        this.setNextStatement(true, ["Action", "Applyable"]);
         this.setColour(225);
       }
     };
@@ -239,8 +252,8 @@
           .appendField(new Blockly.FieldNumber(90), 'ANGLE')
           .appendField('degrees');
         this.setInputsInline(true);
-        this.setPreviousStatement(true, "Action");
-        this.setNextStatement(true, "Action");
+        this.setPreviousStatement(true, ["Action", "Applyable"]);
+        this.setNextStatement(true, ["Action", "Applyable"]);
         this.setColour(225);
       }
     };
@@ -263,8 +276,8 @@
           .appendField('opacity')
           .appendField(new Blockly.FieldNumber(1, 0, 1, 0.1), 'OPACITY');
         this.setInputsInline(true);
-        this.setPreviousStatement(true, "Action");
-        this.setNextStatement(true, "Action");
+        this.setPreviousStatement(true, ["Action", "Applyable"]);
+        this.setNextStatement(true, ["Action", "Applyable"]);
         this.setColour(190);
         this.setTooltip("Instantly sets a Mobject's stroke color, width, and opacity");
       }
@@ -285,13 +298,16 @@
           .appendField('opacity')
           .appendField(new Blockly.FieldNumber(1, 0, 1, 0.1), 'OPACITY');
         this.setInputsInline(true);
-        this.setPreviousStatement(true, "Action");
-        this.setNextStatement(true, "Action");
+        this.setPreviousStatement(true, ["Action", "Applyable"]);
+        this.setNextStatement(true, ["Action", "Applyable"]);
         this.setColour(190);
         this.setTooltip("Instantly sets a Mobject's fill color and opacity");
       }
     };
+
+
     // ---- 2. Define blocks turn into Python code ----
+    // Mobjects
     python.pythonGenerator.forBlock['circle'] = function(block, generator) {
       var radius = block.getFieldValue('RADIUS');
       var color = block.getFieldValue('COLOR');
@@ -306,10 +322,16 @@
       return [code, python.Order.FUNCTION_CALL];
     };
 
+    // Animations
     // Returns true if this block is directly inside an AnimationGroup's mouth
     function isInsideAnimationGroup(block) {
       var parent = block.getSurroundParent();
       return parent !== null && parent.type === 'animation_group';
+    }
+    // Returns true if this block is directly inside an Apply Animation's mouth
+    function isInsideApplyAnimation(block) {
+      var parent = block.getSurroundParent();
+      return parent !== null && parent.type === 'apply_animation';
     }
 
     python.pythonGenerator.forBlock['anim_create'] = function(block, generator) {
@@ -350,52 +372,98 @@
     };
     python.pythonGenerator.forBlock['animation_group'] = function(block, generator) {
       var lagRatio = block.getFieldValue('LAG_RATIO');
-      var allowedTypes = ['anim_create', 'anim_uncreate', 'anim_fadein', 'anim_fadeout'];
+      var allowedTypes = ['anim_create', 'anim_uncreate', 'anim_fadein', 'anim_fadeout', 'apply_animation'];
       var innerBlock = block.getInputTargetBlock('ANIMATIONS');
       while (innerBlock) {
         if (allowedTypes.indexOf(innerBlock.type) === -1) {
-          return '# ERROR: Animation Group can only contain animations (Create, Uncreate, FadeIn, FadeOut). Found "' + innerBlock.type + '".\n';
+          return '# ERROR: Animation Group can only contain animations. Found "' + innerBlock.type + '".\n';
         }
         innerBlock = innerBlock.getNextBlock();
       }
       var animsCode = generator.statementToCode(block, 'ANIMATIONS');
       return 'self.play(AnimationGroup(\n' + animsCode + generator.INDENT + 'lag_ratio=' + lagRatio + '\n))\n';
     };
+    python.pythonGenerator.forBlock['apply_animation'] = function(block, generator) {
+      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
+      var allowedTypes = ['move_to', 'shift', 'next_to', 'to_edge', 'to_corner', 'rotate_by', 'set_stroke', 'set_fill'];
+      var innerBlock = block.getInputTargetBlock('METHODS');
+      if (!innerBlock) {
+        return '# ERROR: Apply Animation needs at least one Positioning or Style block inside it.\n';
+      }
+      var chain = '';
+      while (innerBlock) {
+        if (allowedTypes.indexOf(innerBlock.type) === -1) {
+          return '# ERROR: Apply Animation can only contain Positioning or Style blocks. Found "' + innerBlock.type + '".\n';
+        }
+        chain += generator.blockToCode(innerBlock, true);
+        innerBlock = innerBlock.getNextBlock();
+      }
+      var expr = mobject + '.animate' + chain;
+      if (isInsideAnimationGroup(block)) {
+        return expr + ',\n';
+      }
+      return 'self.play(' + expr + ')\n';
+    };
+    // Positioning 
     python.pythonGenerator.forBlock['move_to'] = function(block, generator) {
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
       var x = block.getFieldValue('X')
       var y = block.getFieldValue('Y')
-      return mobject + '.move_to([' + x + ', ' + y + ', 0])\n'
+      var call = '.move_to([' + x + ', ' + y + ', 0])';
+      if (isInsideApplyAnimation(block)) {
+        return call;
+      }
+      return mobject + call + '\n';
     };
 
     python.pythonGenerator.forBlock['shift'] = function(block, generator) {
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
       var dx = block.getFieldValue('DX');
       var dy = block.getFieldValue('DY');
-      return mobject + '.shift([' + dx + ', ' + dy + ', 0])\n';
+      var call = '.shift([' + dx + ', ' + dy + ', 0])';
+      if (isInsideApplyAnimation(block)) {
+        return call;
+      }
+      return mobject + call + '\n';
     };
     python.pythonGenerator.forBlock['next_to'] = function(block, generator) {
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
       var ref = generator.valueToCode(block, "REFERENCE", python.Order.NONE) || 'None';
       var dir = block.getFieldValue('DIR');
       var buff = block.getFieldValue('BUFF');
-      return mobject + '.next_to(' + ref + ', ' + dir + ', buff=' + buff + ')\n';
+      var call = '.next_to(' + ref + ', ' + dir + ', buff=' + buff + ')';
+      if (isInsideApplyAnimation(block)) {
+        return call;
+      }
+      return mobject + call + '\n';
     };
     python.pythonGenerator.forBlock['to_edge'] = function(block, generator) {
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
       var dir = block.getFieldValue('DIR');
-      return mobject + '.to_edge(' + dir + ')\n';
+      var call = '.to_edge(' + dir + ')';
+      if (isInsideApplyAnimation(block)) {
+        return call;
+      }
+      return mobject + call + '\n';
     };
 
     python.pythonGenerator.forBlock['to_corner'] = function(block, generator) {
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
       var corner = block.getFieldValue('CORNER');
-      return mobject + '.to_corner(' + corner + ')\n';
+      var call = '.to_corner(' + corner + ')';
+      if (isInsideApplyAnimation(block)) {
+        return call;
+      }
+      return mobject + call + '\n';
     };
     python.pythonGenerator.forBlock['rotate_by'] = function(block, generator) {
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
       var angle = block.getFieldValue('ANGLE');
-      return mobject + '.rotate(' + angle + ' * DEGREES)\n';
+      var call = '.rotate(' + angle + ' * DEGREES)';
+      if (isInsideApplyAnimation(block)) {
+        return call;
+      }
+      return mobject + call + '\n';
     };
 
     python.pythonGenerator.forBlock['set_stroke'] = function(block, generator) {
@@ -403,13 +471,21 @@
       var color = block.getFieldValue('COLOR');
       var width = block.getFieldValue('WIDTH');
       var opacity = block.getFieldValue('OPACITY');
-      return mobject + '.set_stroke(color=' + color + ', width=' + width + ', opacity=' + opacity + ')\n';
+      var call = '.set_stroke(color=' + color + ', width=' + width + ', opacity=' + opacity + ')';
+      if (isInsideApplyAnimation(block)) {
+        return call;
+      }
+      return mobject + call + '\n';
     };
     python.pythonGenerator.forBlock['set_fill'] = function(block, generator) {
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
       var color = block.getFieldValue('COLOR');
       var opacity = block.getFieldValue('OPACITY');
-      return mobject + '.set_fill(color=' + color + ', opacity=' + opacity + ')\n';
+      var call = '.set_fill(color=' + color + ', opacity=' + opacity + ')';
+      if (isInsideApplyAnimation(block)) {
+        return call;
+      }
+      return mobject + call + '\n';
     };
 
     // ---- 3. Toolbox: add a Mobjects category containing our new block ----
@@ -439,7 +515,8 @@
             { "kind": "block", "type": "anim_fadein" },
             { "kind": "block", "type": "anim_fadeout" },
             { "kind": "block", "type": "anim_wait" },
-            { "kind": "block", "type": "animation_group" }
+            { "kind": "block", "type": "animation_group" },
+            { "kind": "block", "type": "apply_animation" }
           ]
         },
         {
