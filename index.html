@@ -24,14 +24,6 @@
             .appendField("Circle")
             .appendField("radius")
             .appendField(new Blockly.FieldNumber(1, 0, 100), "RADIUS")
-            .appendField("color")
-            .appendField(new Blockly.FieldDropdown([
-              ["red", "RED"],
-              ["blue", "BLUE"],
-              ["green", "GREEN"],
-              ["yellow", "YELLOW"],
-              ["white", "WHITE"]
-            ]), "COLOR");
         this.setOutput(true, "Mobject");
         this.setColour(230);
         this.setTooltip("Creates a circle Mobject");
@@ -45,14 +37,6 @@
             .appendField(new Blockly.FieldNumber(2, 0, 100), "WIDTH")
             .appendField("height")
             .appendField(new Blockly.FieldNumber(1, 0, 100), "HEIGHT")
-            .appendField("color")
-            .appendField(new Blockly.FieldDropdown([
-              ["red", "RED"],
-              ["blue", "BLUE"],
-              ["green", "GREEN"],
-              ["yellow", "YELLOW"],
-              ["white", "WHITE"]
-            ]), "COLOR");
         this.setOutput(true, "Mobject");
         this.setColour(230);
         this.setTooltip("Creates a rectangle Mobject");
@@ -310,15 +294,13 @@
     // Mobjects
     python.pythonGenerator.forBlock['circle'] = function(block, generator) {
       var radius = block.getFieldValue('RADIUS');
-      var color = block.getFieldValue('COLOR');
-      var code = 'Circle(radius=' + radius + ', color=' + color + ')';
+      var code = 'Circle(radius=' + radius + ')';
       return [code, python.Order.FUNCTION_CALL];
     };
     python.pythonGenerator.forBlock['rectangle'] = function(block, generator) {
       var width = block.getFieldValue('WIDTH');
       var height = block.getFieldValue('HEIGHT');
-      var color = block.getFieldValue('COLOR');
-      var code = 'Rectangle(width=' + width + ', height='+height+', color=' + color + ')';
+      var code = 'Rectangle(width=' + width + ', height='+height+')';
       return [code, python.Order.FUNCTION_CALL];
     };
 
