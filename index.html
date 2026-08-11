@@ -9,6 +9,7 @@
   <div id="blocklyDiv" style="height: 480px; width: 800px;"></div>
 
   <button id="showCodeButton">Show Generated Code</button>
+  <button id="renderButton">Render</button>
   <pre id="outputArea"></pre>
 
   <script src="https://unpkg.com/blockly/blockly_compressed.js"></script>
@@ -540,6 +541,16 @@
       var code = python.pythonGenerator.workspaceToCode(workspace);
       document.getElementById('outputArea').textContent = code;
     });
+    document.getElementById('renderButton').addEventListener('click', function() {
+  var code = python.pythonGenerator.workspaceToCode(workspace);
+  fetch('http://localhost:3000/render', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code: code })
+  })
+    .then(function(response) { return response.json(); })
+    .then(function(data) { console.log(data); });
+});
   </script>
 
 </body>
