@@ -10,6 +10,7 @@
 
   <button id="showCodeButton">Show Generated Code</button>
   <button id="renderButton">Render</button>
+  <video id="resultVideo" controls width="480"></video>
   <pre id="outputArea"></pre>
 
   <script src="https://unpkg.com/blockly/blockly_compressed.js"></script>
@@ -548,8 +549,11 @@
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ code: code })
   })
-    .then(function(response) { return response.json(); })
-    .then(function(data) { console.log(data); });
+    .then(function(response) { return response.blob(); })
+    .then(function(blob) {
+      var videoUrl = URL.createObjectURL(blob);
+      document.getElementById('resultVideo').src = videoUrl;
+    });
 });
   </script>
 

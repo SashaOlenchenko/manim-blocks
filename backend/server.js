@@ -35,7 +35,8 @@ app.post('/render', (req, res) => {
       return res.status(500).json({ status: 'error', message: stderr });
     }
     console.log('Manim finished rendering.');
-    res.json({ status: 'rendered' });
+    const videoPath = path.join(__dirname, 'media', 'videos', 'scene', '480p15', 'GeneratedScene.mp4');
+    res.sendFile(videoPath);
   });
 });
 
