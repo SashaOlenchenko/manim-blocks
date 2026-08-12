@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const { exec } = require('child_process');
 const app = express();
 const PORT = 3000;
 
@@ -26,7 +27,16 @@ app.post('/render', (req, res) => {
   const filePath = path.join(__dirname, 'scene.py');
   fs.writeFileSync(filePath, sceneCode);
   console.log('Wrote scene to:', filePath);
-  res.json({ status: 'written', file: filePath });
+
+  const command = `manim -ql "${filePath}" GeneratedScene`;
+  exec(command, { cwd: __dirname }, (error, stdout, stderr) => {
+    if (error) {
+      console.error('Manim failed:', stderr);
+      return res.status(500).json({ status: 'error', message: stderr });
+    }
+    console.log('Manim finished rendering.');
+    res.json({ status: 'rendered' });
+  });
 });
 
 app.listen(PORT, () => {
