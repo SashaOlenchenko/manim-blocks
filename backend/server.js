@@ -21,23 +21,22 @@ app.get('/', (req, res) => {
   res.send('Manim Blocks backend is running!');
 });
 
+const qualityFolders = {
+  ql: '480p15',
+  qm: '720p30',
+  qh: '1080p60',
+  qk: '2160p60'
+};
+
 app.post('/render', (req, res) => {
   const code = req.body.code;
-  const quality = req.body.quality;
-  var folder = "480p15"
+  const quality = req.body.quality || ql;
 
-  if (quality == "ql") {
-    folder = "480p15"
+    if (!qualityFolders[quality]) {
+    return res.status(400).json({ status: 'error', message: 'Invalid quality option.' });
   }
-  if (quality == "qm") {
-    folder = "720p30"
-  }  
-  if (quality == "qh") {
-    folder = "1080p60"
-  }
-  if (quality == "qk") {
-    folder = "2160p60"
-  }
+  
+  const folder = qualityFolders[quality] || qualityFolders.ql;
 
   if (!code || !code.trim()) {
     return res.status(400).json({ status: 'error', message: 'No blocks to render — build something in the workspace first.' });
