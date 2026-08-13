@@ -55,6 +55,13 @@
     <div class="column">
       <video id="resultVideo" controls></video>
       <button id="renderButton">Render</button>
+      <label for="qual">Select quality:</label>
+      <select name="quality", id="qual">
+        <option value="ql">Low</option>
+        <option value="qm">Medium</option>
+        <option value="qh">High</option>
+        <option value="qk">4k</option>
+      </select>
       <div id="statusMessage"></div>
     </div>
   </div>
@@ -592,6 +599,8 @@
       var code = python.pythonGenerator.workspaceToCode(workspace);
       var renderButton = document.getElementById('renderButton');
       var statusMessage = document.getElementById('statusMessage');
+      var quality = document.getElementById('qual');
+      var q = quality.value;
 
       renderButton.disabled = true;
       statusMessage.textContent = 'Rendering... this may take a moment.';
@@ -600,7 +609,7 @@
       fetch('http://localhost:3000/render', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: code })
+        body: JSON.stringify({ code: code , quality: q })
       })
         .then(function(response) {
           if (!response.ok) {

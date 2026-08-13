@@ -23,6 +23,21 @@ app.get('/', (req, res) => {
 
 app.post('/render', (req, res) => {
   const code = req.body.code;
+  const quality = req.body.quality;
+  var folder = "480p15"
+
+  if (quality == "ql") {
+    folder = "480p15"
+  }
+  if (quality == "qm") {
+    folder = "720p30"
+  }  
+  if (quality == "qh") {
+    folder = "1080p60"
+  }
+  if (quality == "qk") {
+    folder = "2160p60"
+  }
 
   if (!code || !code.trim()) {
     return res.status(400).json({ status: 'error', message: 'No blocks to render — build something in the workspace first.' });
@@ -33,14 +48,14 @@ app.post('/render', (req, res) => {
   fs.writeFileSync(filePath, sceneCode);
   console.log('Wrote scene to:', filePath);
 
-  const command = `manim -ql "${filePath}" GeneratedScene`;
+  const command = `manim -"${quality}" "${filePath}" GeneratedScene`;
   exec(command, { cwd: __dirname }, (error, stdout, stderr) => {
     if (error) {
       console.error('Manim failed:', stderr);
       return res.status(500).json({ status: 'error', message: stderr });
     }
     console.log('Manim finished rendering.');
-    const videoPath = path.join(__dirname, 'media', 'videos', 'scene', '480p15', 'GeneratedScene.mp4');
+    const videoPath = path.join(__dirname, 'media', 'videos', 'scene', folder, 'GeneratedScene.mp4');
     res.sendFile(videoPath);
   });
 });
