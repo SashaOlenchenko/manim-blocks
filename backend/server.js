@@ -23,6 +23,11 @@ app.get('/', (req, res) => {
 
 app.post('/render', (req, res) => {
   const code = req.body.code;
+
+  if (!code || !code.trim()) {
+    return res.status(400).json({ status: 'error', message: 'No blocks to render — build something in the workspace first.' });
+  }
+
   const sceneCode = wrapInScene(code);
   const filePath = path.join(__dirname, 'scene.py');
   fs.writeFileSync(filePath, sceneCode);

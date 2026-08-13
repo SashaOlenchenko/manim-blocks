@@ -3,15 +3,61 @@
 <head>
   <meta charset="utf-8">
   <title>Manim Blocks - First Test</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+    .column {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    #blocklyDiv {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border: 1px solid #ccc;
+    }
+    #resultVideo {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+    }
+    #outputArea {
+      background: #f5f5f5;
+      padding: 10px;
+      overflow: auto;
+      max-height: 200px;
+    }
+    #statusMessage {
+      min-height: 20px;
+      font-size: 14px;
+    }
+    #statusMessage.error {
+      color: #c0392b;
+    }
+  </style>
 </head>
 <body>
 
-  <div id="blocklyDiv" style="height: 480px; width: 800px;"></div>
-
-  <button id="showCodeButton">Show Generated Code</button>
-  <button id="renderButton">Render</button>
-  <video id="resultVideo" controls width="480"></video>
-  <pre id="outputArea"></pre>
+  <div class="container">
+    <div class="column">
+      <div id="blocklyDiv"></div>
+      <button id="showCodeButton">Show Generated Code</button>
+      <pre id="outputArea"></pre>
+    </div>
+    <div class="column">
+      <video id="resultVideo" controls></video>
+      <button id="renderButton">Render</button>
+      <div id="statusMessage"></div>
+    </div>
+  </div>
 
   <script src="https://unpkg.com/blockly/blockly_compressed.js"></script>
   <script src="https://unpkg.com/blockly/blocks_compressed.js"></script>
@@ -543,18 +589,40 @@
       document.getElementById('outputArea').textContent = code;
     });
     document.getElementById('renderButton').addEventListener('click', function() {
-  var code = python.pythonGenerator.workspaceToCode(workspace);
-  fetch('http://localhost:3000/render', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code: code })
-  })
-    .then(function(response) { return response.blob(); })
-    .then(function(blob) {
-      var videoUrl = URL.createObjectURL(blob);
-      document.getElementById('resultVideo').src = videoUrl;
+      var code = python.pythonGenerator.workspaceToCode(workspace);
+      var renderButton = document.getElementById('renderButton');
+      var statusMessage = document.getElementById('statusMessage');
+
+      renderButton.disabled = true;
+      statusMessage.textContent = 'Rendering... this may take a moment.';
+      statusMessage.classList.remove('error');
+
+      fetch('http://localhost:3000/render', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: code })
+      })
+        .then(function(response) {
+          if (!response.ok) {
+            return response.json().then(function(errorData) {
+              throw new Error(errorData.message || 'Render failed.');
+            });
+          }
+          return response.blob();
+        })
+        .then(function(blob) {
+          var videoUrl = URL.createObjectURL(blob);
+          document.getElementById('resultVideo').src = videoUrl;
+          statusMessage.textContent = 'Done.';
+        })
+        .catch(function(error) {
+          statusMessage.textContent = 'Error: ' + error.message;
+          statusMessage.classList.add('error');
+        })
+        .finally(function() {
+          renderButton.disabled = false;
+        });
     });
-});
   </script>
 
 </body>
