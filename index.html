@@ -291,6 +291,24 @@
     });
 
     defineMobjectMethodBlock({
+      type: 'set_x',
+      colour: 225,
+      fields: [{
+        name: 'X', kind: 'number', default: 0, before: 'set x'
+      }],
+      buildCall: function(v) {return '.set_x(' + v.X + ')'; }
+    });
+
+    defineMobjectMethodBlock({
+      type: 'set_y',
+      colour: 225,
+      fields: [{
+        name: 'Y', kind: 'number', default: 0, before: 'set y'
+      }],
+      buildCall: function(v) {return '.set_y(' + v.X + ')'; }
+    });
+
+    defineMobjectMethodBlock({
       type: 'rotate_by',
       colour: 225,
       fields: [
@@ -504,6 +522,8 @@
           "contents": [
             {"kind": "block", "type": "move_to"},
             {"kind": "block", "type": "shift"},
+            {"kind": "block", "type": "set_x"},
+            {"kind": "block", "type": "set_y"},
             {"kind": "block", "type": "next_to"},
             {"kind": "block", "type": "to_edge"},
             {"kind": "block", "type": "to_corner"},
