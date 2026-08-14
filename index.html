@@ -224,45 +224,140 @@
         this.setTooltip("Animates one or more Positioning/Style changes on a Mobject using .animate");
       }
     };
-    // ---- Positioning blocks ----
-    Blockly.Blocks['move_to'] = {
-      init: function() {
-        this.appendDummyInput('')
-          .appendField('Move');
-        this.appendValueInput('MOBJECT')
-          .setCheck('Mobject');
-        this.appendDummyInput('')
-          .appendField('to')
-          .appendField(new Blockly.FieldNumber(0), 'X')
-          .appendField('x')
-          .appendField(new Blockly.FieldNumber(0), 'Y')
-          .appendField('y');
-        this.setInputsInline(true)
-        this.setPreviousStatement(true, ["Action", "Applyable"]);
-        this.setNextStatement(true, ["Action", "Applyable"]);
-        this.setColour(225);
-      }
-            
+    // ---- Shared dropdown options, to avoid repeating the same arrays ----
+    var MANIM_COLORS = [
+      ["red", "RED"],
+      ["blue", "BLUE"],
+      ["green", "GREEN"],
+      ["yellow", "YELLOW"],
+      ["white", "WHITE"]
+    ];
+    var DIRECTIONS = [
+      ["right", "RIGHT"],
+      ["left", "LEFT"],
+      ["up", "UP"],
+      ["down", "DOWN"]
+    ];
+
+    // ---- Factory for the shared shape of Positioning/Style blocks: ----
+    // one Mobject socket, a handful of fields, and a generator that
+    // returns either a full statement or a bare ".method(...)" fragment
+    // when nested inside Apply Animation.
+    function defineMobjectMethodBlock(config) {
+      Blockly.Blocks[config.type] = {
+        init: function() {
+          if (config.leadingLabel) {
+            this.appendDummyInput('').appendField(config.leadingLabel);
+          }
+          this.appendValueInput('MOBJECT').setCheck('Mobject');
+          config.fields.forEach(function(f) {
+            var input = this.appendDummyInput('');
+            if (f.before) input.appendField(f.before);
+            var field = (f.kind === 'dropdown')
+              ? new Blockly.FieldDropdown(f.options)
+              : new Blockly.FieldNumber(f.default, f.min, f.max, f.precision);
+            input.appendField(field, f.name);
+            if (f.after) input.appendField(f.after);
+          }, this);
+          this.setInputsInline(true);
+          this.setPreviousStatement(true, ["Action", "Applyable"]);
+          this.setNextStatement(true, ["Action", "Applyable"]);
+          this.setColour(config.colour);
+          if (config.tooltip) this.setTooltip(config.tooltip);
+        }
       };
-    
-    Blockly.Blocks['shift'] = {
-      init: function() {
-        this.appendDummyInput('')
-          .appendField('Shift');
-        this.appendValueInput('MOBJECT')
-          .setCheck('Mobject');
-        this.appendDummyInput('')
-          .appendField('by')
-          .appendField(new Blockly.FieldNumber(0), 'DX')
-          .appendField('x')
-          .appendField(new Blockly.FieldNumber(0), 'DY')
-          .appendField('y');
-        this.setInputsInline(true);
-        this.setPreviousStatement(true, ["Action", "Applyable"]);
-        this.setNextStatement(true, ["Action", "Applyable"]);
-        this.setColour(225);
-      }
-    };
+
+      python.pythonGenerator.forBlock[config.type] = function(block, generator) {
+        var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
+        var vals = {};
+        config.fields.forEach(function(f) {
+          vals[f.name] = block.getFieldValue(f.name);
+        });
+        var call = config.buildCall(vals);
+        if (isInsideApplyAnimation(block)) {
+          return call;
+        }
+        return mobject + call + '\n';
+      };
+    }
+
+    // ---- Positioning blocks ----
+    defineMobjectMethodBlock({
+      type: 'move_to',
+      leadingLabel: 'Move',
+      colour: 225,
+      fields: [
+        { name: 'X', kind: 'number', default: 0, before: 'to', after: 'x' },
+        { name: 'Y', kind: 'number', default: 0, after: 'y' }
+      ],
+      buildCall: function(v) { return '.move_to([' + v.X + ', ' + v.Y + ', 0])'; }
+    });
+
+    defineMobjectMethodBlock({
+      type: 'shift',
+      leadingLabel: 'Shift',
+      colour: 225,
+      fields: [
+        { name: 'DX', kind: 'number', default: 0, before: 'by', after: 'x' },
+        { name: 'DY', kind: 'number', default: 0, after: 'y' }
+      ],
+      buildCall: function(v) { return '.shift([' + v.DX + ', ' + v.DY + ', 0])'; }
+    });
+
+    defineMobjectMethodBlock({
+      type: 'to_edge',
+      colour: 225,
+      fields: [
+        { name: 'DIR', kind: 'dropdown', options: DIRECTIONS, before: 'to edge' }
+      ],
+      buildCall: function(v) { return '.to_edge(' + v.DIR + ')'; }
+    });
+
+    defineMobjectMethodBlock({
+      type: 'to_corner',
+      colour: 225,
+      fields: [
+        { name: 'CORNER', kind: 'dropdown', before: 'to corner', options: [
+          ["top-left", "UL"],
+          ["top-right", "UR"],
+          ["bottom-left", "DL"],
+          ["bottom-right", "DR"]
+        ] }
+      ],
+      buildCall: function(v) { return '.to_corner(' + v.CORNER + ')'; }
+    });
+
+    defineMobjectMethodBlock({
+      type: 'set_x',
+      colour: 225,
+      fields: [{
+        name: 'X', kind: 'number', default: 0, before: 'set x'
+      }],
+      buildCall: function(v) {return '.set_x(' + v.X + ')'; }
+    });
+
+    defineMobjectMethodBlock({
+      type: 'set_y',
+      colour: 225,
+      fields: [{
+        name: 'Y', kind: 'number', default: 0, before: 'set y'
+      }],
+      buildCall: function(v) {return '.set_y(' + v.X + ')'; }
+    });
+
+    defineMobjectMethodBlock({
+      type: 'rotate_by',
+      colour: 225,
+      fields: [
+        { name: 'ANGLE', kind: 'number', default: 90, before: 'rotate by', after: 'degrees' }
+      ],
+      buildCall: function(v) { return '.rotate(' + v.ANGLE + ' * DEGREES)'; }
+    });
+
+    // next_to is left hand-written: it needs TWO Mobject sockets
+    // (MOBJECT and REFERENCE), which doesn't fit the factory's
+    // single-socket shape. Forcing it in would complicate the factory
+    // for every other block just to serve this one outlier.
     Blockly.Blocks['next_to'] = {
       init: function() {
         this.appendValueInput('MOBJECT')
@@ -270,14 +365,9 @@
         this.appendDummyInput('')
           .appendField('next to');
         this.appendValueInput('REFERENCE')
-          .setCheck('Mobject');  
+          .setCheck('Mobject');
         this.appendDummyInput('')
-          .appendField(new Blockly.FieldDropdown([
-              ["right", "RIGHT"],
-              ["left", "LEFT"],
-              ["up", "UP"],
-              ["down", "DOWN"]
-            ]), "DIR");
+          .appendField(new Blockly.FieldDropdown(DIRECTIONS), 'DIR');
         this.appendDummyInput('')
           .appendField('buff');
         this.appendDummyInput('')
@@ -288,103 +378,30 @@
         this.setColour(225);
       }
     };
-    Blockly.Blocks['to_edge'] = {
-      init: function() {
-        this.appendValueInput('MOBJECT')
-          .setCheck('Mobject');
-        this.appendDummyInput('')
-          .appendField('to edge')
-          .appendField(new Blockly.FieldDropdown([
-            ["right", "RIGHT"],
-              ["left", "LEFT"],
-              ["up", "UP"],
-              ["down", "DOWN"]
-          ]), 'DIR');
-        this.setInputsInline(true);
-        this.setPreviousStatement(true, ["Action", "Applyable"]);
-        this.setNextStatement(true, ["Action", "Applyable"]);
-        this.setColour(225);
-      }
-    };
-    Blockly.Blocks['to_corner'] = {
-      init: function() {
-        this.appendValueInput('MOBJECT')
-          .setCheck('Mobject');
-        this.appendDummyInput('')
-          .appendField('to corner')
-          .appendField(new Blockly.FieldDropdown([
-            ["top-left", "UL"],
-            ["top-right", "UR"],
-            ["bottom-left", "DL"],
-            ["bottom-right", "DR"]
-          ]), 'CORNER');
-        this.setInputsInline(true);
-        this.setPreviousStatement(true, ["Action", "Applyable"]);
-        this.setNextStatement(true, ["Action", "Applyable"]);
-        this.setColour(225);
-      }
-    };
-    Blockly.Blocks['rotate_by'] = {
-      init: function() {
-        this.appendValueInput('MOBJECT')
-          .setCheck('Mobject');
-        this.appendDummyInput('')
-          .appendField('rotate by')
-          .appendField(new Blockly.FieldNumber(90), 'ANGLE')
-          .appendField('degrees');
-        this.setInputsInline(true);
-        this.setPreviousStatement(true, ["Action", "Applyable"]);
-        this.setNextStatement(true, ["Action", "Applyable"]);
-        this.setColour(225);
-      }
-    };
+
     // ---- Style blocks ----
-    Blockly.Blocks['set_stroke'] = {
-      init: function() {
-        this.appendValueInput('MOBJECT')
-          .setCheck('Mobject');
-        this.appendDummyInput('')
-          .appendField('set stroke color')
-          .appendField(new Blockly.FieldDropdown([
-            ["red", "RED"],
-            ["blue", "BLUE"],
-            ["green", "GREEN"],
-            ["yellow", "YELLOW"],
-            ["white", "WHITE"]
-          ]), 'COLOR')
-          .appendField('width')
-          .appendField(new Blockly.FieldNumber(4, 0), 'WIDTH')
-          .appendField('opacity')
-          .appendField(new Blockly.FieldNumber(1, 0, 1, 0.1), 'OPACITY');
-        this.setInputsInline(true);
-        this.setPreviousStatement(true, ["Action", "Applyable"]);
-        this.setNextStatement(true, ["Action", "Applyable"]);
-        this.setColour(190);
-        this.setTooltip("Instantly sets a Mobject's stroke color, width, and opacity");
-      }
-    };
-    Blockly.Blocks['set_fill'] = {
-      init: function() {
-        this.appendValueInput('MOBJECT')
-          .setCheck('Mobject');
-        this.appendDummyInput('')
-          .appendField('set fill color')
-          .appendField(new Blockly.FieldDropdown([
-            ["red", "RED"],
-            ["blue", "BLUE"],
-            ["green", "GREEN"],
-            ["yellow", "YELLOW"],
-            ["white", "WHITE"]
-          ]), 'COLOR')
-          .appendField('opacity')
-          .appendField(new Blockly.FieldNumber(1, 0, 1, 0.1), 'OPACITY');
-        this.setInputsInline(true);
-        this.setPreviousStatement(true, ["Action", "Applyable"]);
-        this.setNextStatement(true, ["Action", "Applyable"]);
-        this.setColour(190);
-        this.setTooltip("Instantly sets a Mobject's fill color and opacity");
-      }
-    };
+    defineMobjectMethodBlock({
+      type: 'set_stroke',
+      colour: 190,
+      tooltip: "Instantly sets a Mobject's stroke color, width, and opacity",
+      fields: [
+        { name: 'COLOR', kind: 'dropdown', options: MANIM_COLORS, before: 'set stroke color' },
+        { name: 'WIDTH', kind: 'number', default: 4, min: 0, before: 'width' },
+        { name: 'OPACITY', kind: 'number', default: 1, min: 0, max: 1, precision: 0.1, before: 'opacity' }
+      ],
+      buildCall: function(v) { return '.set_stroke(color=' + v.COLOR + ', width=' + v.WIDTH + ', opacity=' + v.OPACITY + ')'; }
+    });
+
+    defineMobjectMethodBlock({
+      type: 'set_fill',
+      colour: 190,
+      tooltip: "Instantly sets a Mobject's fill color and opacity",
+      fields: [
+        { name: 'COLOR', kind: 'dropdown', options: MANIM_COLORS, before: 'set fill color' },
+        { name: 'OPACITY', kind: 'number', default: 1, min: 0, max: 1, precision: 0.1, before: 'opacity' }
+      ],
+      buildCall: function(v) { return '.set_fill(color=' + v.COLOR + ', opacity=' + v.OPACITY + ')'; }
+    });
 
 
     // ---- 2. Define blocks turn into Python code ----
@@ -501,84 +518,16 @@
       }
       return 'self.play(' + expr + ')\n';
     };
-    // Positioning 
-    python.pythonGenerator.forBlock['move_to'] = function(block, generator) {
-      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
-      var x = block.getFieldValue('X')
-      var y = block.getFieldValue('Y')
-      var call = '.move_to([' + x + ', ' + y + ', 0])';
-      if (isInsideApplyAnimation(block)) {
-        return call;
-      }
-      return mobject + call + '\n';
-    };
-
-    python.pythonGenerator.forBlock['shift'] = function(block, generator) {
-      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
-      var dx = block.getFieldValue('DX');
-      var dy = block.getFieldValue('DY');
-      var call = '.shift([' + dx + ', ' + dy + ', 0])';
-      if (isInsideApplyAnimation(block)) {
-        return call;
-      }
-      return mobject + call + '\n';
-    };
+    // Positioning
+    // move_to, shift, to_edge, to_corner, rotate_by, set_stroke, and set_fill
+    // all get their generator registered automatically by defineMobjectMethodBlock above.
+    // next_to is the one exception, hand-written for its second Mobject socket.
     python.pythonGenerator.forBlock['next_to'] = function(block, generator) {
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
       var ref = generator.valueToCode(block, "REFERENCE", python.Order.NONE) || 'None';
       var dir = block.getFieldValue('DIR');
       var buff = block.getFieldValue('BUFF');
       var call = '.next_to(' + ref + ', ' + dir + ', buff=' + buff + ')';
-      if (isInsideApplyAnimation(block)) {
-        return call;
-      }
-      return mobject + call + '\n';
-    };
-    python.pythonGenerator.forBlock['to_edge'] = function(block, generator) {
-      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
-      var dir = block.getFieldValue('DIR');
-      var call = '.to_edge(' + dir + ')';
-      if (isInsideApplyAnimation(block)) {
-        return call;
-      }
-      return mobject + call + '\n';
-    };
-
-    python.pythonGenerator.forBlock['to_corner'] = function(block, generator) {
-      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
-      var corner = block.getFieldValue('CORNER');
-      var call = '.to_corner(' + corner + ')';
-      if (isInsideApplyAnimation(block)) {
-        return call;
-      }
-      return mobject + call + '\n';
-    };
-    python.pythonGenerator.forBlock['rotate_by'] = function(block, generator) {
-      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
-      var angle = block.getFieldValue('ANGLE');
-      var call = '.rotate(' + angle + ' * DEGREES)';
-      if (isInsideApplyAnimation(block)) {
-        return call;
-      }
-      return mobject + call + '\n';
-    };
-
-    python.pythonGenerator.forBlock['set_stroke'] = function(block, generator) {
-      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
-      var color = block.getFieldValue('COLOR');
-      var width = block.getFieldValue('WIDTH');
-      var opacity = block.getFieldValue('OPACITY');
-      var call = '.set_stroke(color=' + color + ', width=' + width + ', opacity=' + opacity + ')';
-      if (isInsideApplyAnimation(block)) {
-        return call;
-      }
-      return mobject + call + '\n';
-    };
-    python.pythonGenerator.forBlock['set_fill'] = function(block, generator) {
-      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
-      var color = block.getFieldValue('COLOR');
-      var opacity = block.getFieldValue('OPACITY');
-      var call = '.set_fill(color=' + color + ', opacity=' + opacity + ')';
       if (isInsideApplyAnimation(block)) {
         return call;
       }
@@ -637,6 +586,8 @@
           "contents": [
             {"kind": "block", "type": "move_to"},
             {"kind": "block", "type": "shift"},
+            {"kind": "block", "type": "set_x"},
+            {"kind": "block", "type": "set_y"},
             {"kind": "block", "type": "next_to"},
             {"kind": "block", "type": "to_edge"},
             {"kind": "block", "type": "to_corner"},
