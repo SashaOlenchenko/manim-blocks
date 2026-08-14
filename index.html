@@ -86,7 +86,7 @@
             .appendField(new Blockly.FieldNumber(1, 0, 100), "RADIUS")
         this.setOutput(true, "Mobject");
         this.setColour(230);
-        this.setTooltip("Creates a circle Mobject");
+        this.setTooltip("Creates a Circle Mobject");
       }
     };
     Blockly.Blocks['rectangle'] = {
@@ -99,9 +99,46 @@
             .appendField(new Blockly.FieldNumber(1, 0, 100), "HEIGHT")
         this.setOutput(true, "Mobject");
         this.setColour(230);
-        this.setTooltip("Creates a rectangle Mobject");
+        this.setTooltip("Creates a Rectangle Mobject");
       }
     };
+
+    Blockly.Blocks['text']= {
+      init: function() {
+          this.appendDummyInput()
+              .appendField("Text")
+              .appendField(new Blockly.FieldTextInput(''), "TEXT")
+              .appendField("size")
+              .appendField(new Blockly.FieldNumber(48, 1, 100), "FONT_SIZE")
+          this.setOutput(true, "Mobject");
+          this.setColour(230);
+          this.setTooltip("Creates a Text Mobject");
+      }
+    }
+    Blockly.Blocks['tex']= {
+      init: function() {
+          this.appendDummyInput()
+              .appendField("Tex")
+              .appendField(new Blockly.FieldTextInput(''), "TEX")
+              .appendField("size")
+              .appendField(new Blockly.FieldNumber(48, 1, 100), "FONT_SIZE")
+          this.setOutput(true, "Mobject");
+          this.setColour(230);
+          this.setTooltip("Creates a Tex Mobject");
+      }
+    }
+    Blockly.Blocks['math_tex']= {
+      init: function() {
+          this.appendDummyInput()
+              .appendField("MathTex")
+              .appendField(new Blockly.FieldTextInput(''), "TEX")
+              .appendField("size")
+              .appendField(new Blockly.FieldNumber(48, 1, 100), "FONT_SIZE")
+          this.setOutput(true, "Mobject");
+          this.setColour(230);
+          this.setTooltip("Creates a MathTex Mobject");
+      }
+    }
     
     // ---- Animation blocks (statement blocks, not value blocks) ----
     Blockly.Blocks['anim_create'] = {
@@ -363,6 +400,24 @@
       var code = 'Rectangle(width=' + width + ', height='+height+')';
       return [code, python.Order.FUNCTION_CALL];
     };
+    python.pythonGenerator.forBlock['text'] = function(block, generator) {
+      var text = block.getFieldValue('TEXT');
+      var font_size = block.getFieldValue('FONT_SIZE')
+      var code = 'Text("' + text + '", font_size=' + font_size +')';
+      return [code, python.Order.FUNCTION_CALL];
+    };
+    python.pythonGenerator.forBlock['tex'] = function(block, generator) {
+      var tex = block.getFieldValue('TEX');
+      var font_size = block.getFieldValue('FONT_SIZE')
+      var code = 'Tex(r"' + tex + '", font_size=' + font_size +')';
+      return [code, python.Order.FUNCTION_CALL];
+    };
+    python.pythonGenerator.forBlock['math_tex'] = function(block, generator) {
+      var tex = block.getFieldValue('TEX');
+      var font_size = block.getFieldValue('FONT_SIZE')
+      var code = 'MathTex(r"' + tex + '", font_size=' + font_size +')';
+      return [code, python.Order.FUNCTION_CALL];
+    };
 
     // Animations
     // Returns true if this block is directly inside an AnimationGroup's mouth
@@ -544,6 +599,15 @@
             },
             {
               "kind": "block", "type": "rectangle"
+            },
+            {
+              "kind": "block", "type": "text"
+            },
+            {
+              "kind": "block", "type": "tex"
+            },
+            {
+              "kind": "block", "type": "math_tex"
             }
           ]
         },
