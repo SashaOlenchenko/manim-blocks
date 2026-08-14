@@ -48,6 +48,11 @@
 
   <div class="container">
     <div class="column">
+      <div id="workspaceToolbar">
+        <button id="saveButton">Save</button>
+        <button id="clearButton">Clear Workspace</button>
+        <span id="saveStatus"></span>
+      </div>
       <div id="blocklyDiv"></div>
       <button id="showCodeButton">Show Generated Code</button>
       <pre id="outputArea"></pre>
@@ -588,6 +593,44 @@
 
     var workspace = Blockly.inject('blocklyDiv', {
       toolbox: toolbox
+    });
+
+    // ---- Save / load / clear ----
+    var STORAGE_KEY = 'manimBlocksWorkspace';
+
+    function saveWorkspace() {
+      var state = Blockly.serialization.workspaces.save(workspace);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    // Restore a saved workspace, if one exists, right after creating the workspace
+    var savedState = localStorage.getItem(STORAGE_KEY);
+    if (savedState) {
+      try {
+        Blockly.serialization.workspaces.load(JSON.parse(savedState), workspace);
+      } catch (e) {
+        console.error('Failed to load saved workspace:', e);
+      }
+    }
+
+    // Auto-save whenever the workspace actually changes (skip UI-only events like clicks/scrolling)
+    workspace.addChangeListener(function(event) {
+      if (event.isUiEvent) return;
+      saveWorkspace();
+    });
+
+    document.getElementById('saveButton').addEventListener('click', function() {
+      saveWorkspace();
+      var saveStatus = document.getElementById('saveStatus');
+      saveStatus.textContent = 'Saved!';
+      setTimeout(function() { saveStatus.textContent = ''; }, 1500);
+    });
+
+    document.getElementById('clearButton').addEventListener('click', function() {
+      var confirmed = confirm('Clear the entire workspace? This cannot be undone.');
+      if (!confirmed) return;
+      workspace.clear();
+      localStorage.removeItem(STORAGE_KEY);
     });
 
     // ---- 4. Generate Python ----
