@@ -141,50 +141,64 @@
     }
     
     // ---- Animation blocks (statement blocks, not value blocks) ----
-    Blockly.Blocks['anim_create'] = {
-      init: function() {
-        this.appendValueInput("MOBJECT")
-            .setCheck("Mobject")
-            .appendField("Create");
+    // ---- Animation Blocks Factory
+    function defineAnimationBlock(config) {
+      Blockly.Blocks[config.type] = {
+        init: function() {
+          this.appendValueInput('MOBJECT')
+          .setCheck('Mobject')
+          .appendField(config.name);
         this.setPreviousStatement(true, ["Animation", "Action"]);
         this.setNextStatement(true, ["Animation", "Action"]);
-        this.setColour(260);
-        this.setTooltip("Plays the Create animation on a Mobject");
+        this.setColour(config.colour);
+          if (config.tooltip) this.setTooltip(config.tooltip);
+        }
+      };
+      python.pythonGenerator.forBlock[config.type] = function(block, generator) {
+      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
+      var expr = config.anim + '(' + mobject + ')';
+      if (isInsideAnimationGroup(block)) {
+        return expr + ',\n';
       }
+      return 'self.play(' + expr + ')\n';
     };
-    Blockly.Blocks['anim_uncreate'] = {
-      init: function() {
-        this.appendValueInput("MOBJECT")
-            .setCheck("Mobject")
-            .appendField("Uncreate");
-        this.setPreviousStatement(true, ["Animation", "Action"]);
-        this.setNextStatement(true, ["Animation", "Action"]);
-        this.setColour(260);
-        this.setTooltip("Plays the Uncreate animation on a Mobject");
-      }
-    };
-    Blockly.Blocks['anim_fadein'] = {
-      init: function() {
-        this.appendValueInput("MOBJECT")
-            .setCheck("Mobject")
-            .appendField("FadeIn");
-        this.setPreviousStatement(true, ["Animation", "Action"]);
-        this.setNextStatement(true, ["Animation", "Action"]);
-        this.setColour(260);
-        this.setTooltip("Plays the FadeIn animation on a Mobject");
-      }
-    };
-    Blockly.Blocks['anim_fadeout'] = {
-      init: function() {
-        this.appendValueInput("MOBJECT")
-            .setCheck("Mobject")
-            .appendField("FadeOut");
-        this.setPreviousStatement(true, ["Animation", "Action"]);
-        this.setNextStatement(true, ["Animation", "Action"]);
-        this.setColour(260);
-        this.setTooltip("Plays the FadeOut animation on a Mobject");
-      }
-    };
+  }
+  defineAnimationBlock({
+      type: 'anim_create',
+      name: 'Create',
+      colour: 260,
+      anim: 'Create'
+    })
+  defineAnimationBlock({
+      type: 'anim_uncreate',
+      name: 'Uncreate',
+      colour: 260,
+      anim: 'Uncreate'
+    })
+      defineAnimationBlock({
+      type: 'anim_fadein',
+      name: 'Fade In',
+      colour: 260,
+      anim: 'FadeIn'
+    })
+      defineAnimationBlock({
+      type: 'anim_fadeout',
+      name: 'Fade Out',
+      colour: 260,
+      anim: 'FadeOut'
+    })
+      defineAnimationBlock({
+      type: 'anim_write',
+      name: 'Write',
+      colour: 260,
+      anim: 'Write'
+    })
+      defineAnimationBlock({
+      type: 'anim_unwrite',
+      name: 'Unwrite',
+      colour: 260,
+      anim: 'Unwrite'
+    })
     Blockly.Blocks['anim_wait'] = {
       init: function() {
         this.appendDummyInput()
@@ -378,6 +392,22 @@
         this.setColour(225);
       }
     };
+    Blockly.Blocks['align_to'] = {
+      init: function() {
+        this.appendValueInput('MOBJECT')
+          .setCheck('Mobject');
+        this.appendDummyInput('')
+          .appendField('align to');
+        this.appendValueInput('REFERENCE')
+          .setCheck('Mobject');
+        this.appendDummyInput('')
+          .appendField(new Blockly.FieldDropdown(DIRECTIONS), 'DIR');
+        this.setInputsInline(true)
+        this.setPreviousStatement(true, ["Action", "Applyable"]);
+        this.setNextStatement(true, ["Action", "Applyable"]);
+        this.setColour(225);
+      }
+    };
 
     // ---- Style blocks ----
     defineMobjectMethodBlock({
@@ -533,6 +563,16 @@
       }
       return mobject + call + '\n';
     };
+    python.pythonGenerator.forBlock['align_to'] = function(block, generator) {
+      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
+      var ref = generator.valueToCode(block, "REFERENCE", python.Order.NONE) || 'None';
+      var dir = block.getFieldValue('DIR');
+      var call = '.align_to(' + ref + ', ' + dir + ')';
+      if (isInsideApplyAnimation(block)) {
+        return call;
+      }
+      return mobject + call + '\n';
+    };
 
     // ---- 3. Toolbox: add a Mobjects category containing our new block ----
     var toolbox = {
@@ -569,6 +609,8 @@
             { "kind": "block", "type": "anim_uncreate" },
             { "kind": "block", "type": "anim_fadein" },
             { "kind": "block", "type": "anim_fadeout" },
+            { "kind": "block", "type": "anim_write" },
+            { "kind": "block", "type": "anim_unwrite" },
             { "kind": "block", "type": "anim_wait" },
             { "kind": "block", "type": "animation_group" },
             { "kind": "block", "type": "apply_animation" }
@@ -589,6 +631,7 @@
             {"kind": "block", "type": "set_x"},
             {"kind": "block", "type": "set_y"},
             {"kind": "block", "type": "next_to"},
+            {"kind": "block", "type": "align_to"},
             {"kind": "block", "type": "to_edge"},
             {"kind": "block", "type": "to_corner"},
             {"kind": "block", "type": "rotate_by"}
