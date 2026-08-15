@@ -75,8 +75,11 @@
   <script src="https://unpkg.com/blockly/blocks_compressed.js"></script>
   <script src="https://unpkg.com/blockly/python_compressed.js"></script>
   <script src="https://unpkg.com/blockly/msg/en.js"></script>
+  <script src="https://unpkg.com/@blockly/field-colour"></script>
 
   <script>
+    registerFieldColour();
+
     // ---- 1. Define the blocks ----
     Blockly.Blocks['circle'] = {
       init: function() {
@@ -277,13 +280,26 @@
       }
     };
     // ---- Shared dropdown options, to avoid repeating the same arrays ----
-    var MANIM_COLORS = [
-      ["red", "RED"],
-      ["blue", "BLUE"],
-      ["green", "GREEN"],
-      ["yellow", "YELLOW"],
-      ["white", "WHITE"]
-    ];
+    var MANIM_COLOR_PALETTE = {
+      options: [
+        '#FC6255', '#F7A1A3', '#CF5044', '#FF0000',
+        '#83C167', '#C9E2AE', '#699C52', '#00FF00',
+        '#58C4DD', '#C7E9F1', '#236B8E', '#0000FF',
+        '#F7D96F', '#FFF1B6', '#E8C11C', '#FFFF00',
+        '#9A72AC', '#5CD0B3', '#D147BD',
+        '#FF862F', '#C55F73', '#F0AC5F',
+        '#888888', '#FFFFFF', '#000000'
+      ],
+      titles: [
+        'RED', 'RED_A', 'RED_E', 'PURE_RED',
+        'GREEN', 'GREEN_A', 'GREEN_E', 'PURE_GREEN',
+        'BLUE', 'BLUE_A', 'BLUE_E', 'PURE_BLUE',
+        'YELLOW', 'YELLOW_A', 'YELLOW_E', 'PURE_YELLOW',
+        'PURPLE', 'TEAL', 'PINK',
+        'ORANGE', 'MAROON', 'GOLD',
+        'GRAY', 'WHITE', 'BLACK'
+      ]
+    };
     var DIRECTIONS = [
       ["right", "RIGHT"],
       ["left", "LEFT"],
@@ -305,9 +321,20 @@
           config.fields.forEach(function(f) {
             var input = this.appendDummyInput('');
             if (f.before) input.appendField(f.before);
-            var field = (f.kind === 'dropdown')
-              ? new Blockly.FieldDropdown(f.options)
-              : new Blockly.FieldNumber(f.default, f.min, f.max, f.precision);
+            var field;
+            if (f.kind === 'dropdown') {
+              field = new Blockly.FieldDropdown(f.options);
+            } else if (f.kind === 'colour') {
+              field = Blockly.fieldRegistry.fromJson({
+                type: 'field_colour',
+                colour: f.default || '#ffffff',
+                colourOptions: f.colourOptions || MANIM_COLOR_PALETTE.options,
+                colourTitles: f.colourTitles || MANIM_COLOR_PALETTE.titles,
+                columns: f.columns || 4
+              });
+            } else {
+              field = new Blockly.FieldNumber(f.default, f.min, f.max, f.precision);
+            }
             input.appendField(field, f.name);
             if (f.after) input.appendField(f.after);
           }, this);
@@ -394,7 +421,7 @@
       fields: [{
         name: 'Y', kind: 'number', default: 0, before: 'set y'
       }],
-      buildCall: function(v) {return '.set_y(' + v.X + ')'; }
+      buildCall: function(v) {return '.set_y(' + v.Y + ')'; }
     });
 
     defineMobjectMethodBlock({
@@ -453,11 +480,11 @@
       colour: 190,
       tooltip: "Instantly sets a Mobject's stroke color, width, and opacity",
       fields: [
-        { name: 'COLOR', kind: 'dropdown', options: MANIM_COLORS, before: 'set stroke color' },
+        { name: 'COLOR', kind: 'colour', default: '#ffffff', before: 'set stroke color' },
         { name: 'WIDTH', kind: 'number', default: 4, min: 0, before: 'width' },
         { name: 'OPACITY', kind: 'number', default: 1, min: 0, max: 1, precision: 0.1, before: 'opacity' }
       ],
-      buildCall: function(v) { return '.set_stroke(color=' + v.COLOR + ', width=' + v.WIDTH + ', opacity=' + v.OPACITY + ')'; }
+      buildCall: function(v) { return '.set_stroke(color="' + v.COLOR + '", width=' + v.WIDTH + ', opacity=' + v.OPACITY + ')'; }
     });
 
     defineMobjectMethodBlock({
@@ -465,10 +492,10 @@
       colour: 190,
       tooltip: "Instantly sets a Mobject's fill color and opacity",
       fields: [
-        { name: 'COLOR', kind: 'dropdown', options: MANIM_COLORS, before: 'set fill color' },
+        { name: 'COLOR', kind: 'colour', default: '#ffffff', before: 'set fill color' },
         { name: 'OPACITY', kind: 'number', default: 1, min: 0, max: 1, precision: 0.1, before: 'opacity' }
       ],
-      buildCall: function(v) { return '.set_fill(color=' + v.COLOR + ', opacity=' + v.OPACITY + ')'; }
+      buildCall: function(v) { return '.set_fill(color="' + v.COLOR + '", opacity=' + v.OPACITY + ')'; }
     });
 
 
@@ -542,7 +569,7 @@
     };
     python.pythonGenerator.forBlock['animation_group'] = function(block, generator) {
       var lagRatio = block.getFieldValue('LAG_RATIO');
-      var allowedTypes = ['anim_create', 'anim_uncreate', 'anim_fadein', 'anim_fadeout', 'apply_animation'];
+      var allowedTypes = ['anim_create', 'anim_uncreate', 'anim_fadein', 'anim_fadeout', 'anim_write', 'anim_unwrite', 'anim_transform', 'anim_replace', 'apply_animation'];
       var innerBlock = block.getInputTargetBlock('ANIMATIONS');
       while (innerBlock) {
         if (allowedTypes.indexOf(innerBlock.type) === -1) {
@@ -555,7 +582,7 @@
     };
     python.pythonGenerator.forBlock['apply_animation'] = function(block, generator) {
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
-      var allowedTypes = ['move_to', 'shift', 'next_to', 'to_edge', 'to_corner', 'rotate_by', 'set_stroke', 'set_fill'];
+      var allowedTypes = ['move_to', 'shift', 'set_x', 'set_y', 'next_to', 'align_to', 'to_edge', 'to_corner', 'rotate_by', 'set_stroke', 'set_fill'];
       var innerBlock = block.getInputTargetBlock('METHODS');
       if (!innerBlock) {
         return '# ERROR: Apply Animation needs at least one Positioning or Style block inside it.\n';
