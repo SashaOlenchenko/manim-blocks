@@ -199,6 +199,44 @@
       colour: 260,
       anim: 'Unwrite'
     })
+    Blockly.Blocks['anim_transform'] = 
+    {
+      init: function() {
+        this.appendDummyInput()
+            .appendField("Transform")
+        this.appendValueInput('MOBJECT')
+            .setCheck('Mobject')
+        this.appendDummyInput()
+            .appendField("into")
+        this.appendValueInput('TARGET')
+            .setCheck('Mobject')
+        this.setInputsInline(true)
+        this.setPreviousStatement(true, ["Animation", "Action"]);
+        this.setNextStatement(true, ["Animation", "Action"]);
+        this.setColour(260);
+        this.setTooltip("Transforms one mobject into the shape of another");
+      }
+    }
+
+    Blockly.Blocks['anim_replace'] = 
+    {
+      init: function() {
+        this.appendDummyInput()
+            .appendField("Replace")
+        this.appendValueInput('MOBJECT')
+            .setCheck('Mobject')
+        this.appendDummyInput()
+            .appendField("by")
+        this.appendValueInput('TARGET')
+            .setCheck('Mobject')
+        this.setInputsInline(true)
+        this.setPreviousStatement(true, ["Animation", "Action"]);
+        this.setNextStatement(true, ["Animation", "Action"]);
+        this.setColour(260);
+        this.setTooltip("Replaces one mobject by another via Transform");
+      }
+    }
+
     Blockly.Blocks['anim_wait'] = {
       init: function() {
         this.appendDummyInput()
@@ -477,39 +515,27 @@
       var parent = block.getSurroundParent();
       return parent !== null && parent.type === 'apply_animation';
     }
+    
+    python.pythonGenerator.forBlock['anim_transform'] = function(block, generator) {
+      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
+      var target = generator.valueToCode(block, 'TARGET', python.Order.NONE) || 'None';
+      var expr = 'Transform(' + mobject + ', ' + target + ')';
+      if (isInsideAnimationGroup(block)) {
+        return expr + ',\n';
+      }
+      return 'self.play(' + expr + ')\n';
+    };
 
-    python.pythonGenerator.forBlock['anim_create'] = function(block, generator) {
+        python.pythonGenerator.forBlock['anim_replace'] = function(block, generator) {
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
-      var expr = 'Create(' + mobject + ')';
+      var target = generator.valueToCode(block, 'TARGET', python.Order.NONE) || 'None';
+      var expr = 'ReplacementTransform(' + mobject + ', ' + target + ')';
       if (isInsideAnimationGroup(block)) {
         return expr + ',\n';
       }
       return 'self.play(' + expr + ')\n';
     };
-    python.pythonGenerator.forBlock['anim_uncreate'] = function(block, generator) {
-      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
-      var expr = 'Uncreate(' + mobject + ')';
-      if (isInsideAnimationGroup(block)) {
-        return expr + ',\n';
-      }
-      return 'self.play(' + expr + ')\n';
-    };
-    python.pythonGenerator.forBlock['anim_fadein'] = function(block, generator) {
-      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
-      var expr = 'FadeIn(' + mobject + ')';
-      if (isInsideAnimationGroup(block)) {
-        return expr + ',\n';
-      }
-      return 'self.play(' + expr + ')\n';
-    };
-    python.pythonGenerator.forBlock['anim_fadeout'] = function(block, generator) {
-      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
-      var expr = 'FadeOut(' + mobject + ')';
-      if (isInsideAnimationGroup(block)) {
-        return expr + ',\n';
-      }
-      return 'self.play(' + expr + ')\n';
-    };
+
     python.pythonGenerator.forBlock['anim_wait'] = function(block, generator) {
       var duration = block.getFieldValue('DURATION');
       return 'self.wait(' + duration + ')\n';
@@ -612,6 +638,8 @@
             { "kind": "block", "type": "anim_write" },
             { "kind": "block", "type": "anim_unwrite" },
             { "kind": "block", "type": "anim_wait" },
+            { "kind": "block", "type": "anim_transform"},
+            { "kind": "block", "type": "anim_replace"},
             { "kind": "block", "type": "animation_group" },
             { "kind": "block", "type": "apply_animation" }
           ]
