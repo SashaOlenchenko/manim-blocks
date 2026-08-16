@@ -4,24 +4,31 @@
   <meta charset="utf-8">
   <title>Manim Blocks - First Test</title>
   <style>
+    html, body {
+      height: 100%;
+    }
     body {
       font-family: sans-serif;
       margin: 20px;
+      box-sizing: border-box;
+      height: calc(100vh - 40px);
     }
     .container {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 24px;
-      align-items: start;
+      height: 100%;
     }
     .column {
       display: flex;
       flex-direction: column;
       gap: 10px;
+      min-height: 0;
     }
     #blocklyDiv {
       width: 100%;
-      aspect-ratio: 16 / 9;
+      flex: 1;
+      min-height: 0;
       border: 1px solid #ccc;
     }
     #resultVideo {
@@ -54,8 +61,6 @@
         <span id="saveStatus"></span>
       </div>
       <div id="blocklyDiv"></div>
-      <button id="showCodeButton">Show Generated Code</button>
-      <pre id="outputArea"></pre>
     </div>
     <div class="column">
       <video id="resultVideo" controls></video>
@@ -68,6 +73,8 @@
         <option value="qk">4k</option>
       </select>
       <div id="statusMessage"></div>
+      <button id="showCodeButton">Show Generated Code</button>
+      <pre id="outputArea"></pre>
     </div>
   </div>
 
@@ -151,6 +158,10 @@
           this.appendValueInput('MOBJECT')
           .setCheck('Mobject')
           .appendField(config.name);
+          this.appendDummyInput('')
+            .appendField('run time')
+            .appendField(new Blockly.FieldNumber(config.defaultRunTime || 1, 0), 'RUN_TIME');
+          this.setInputsInline(true);
         this.setPreviousStatement(true, ["Animation", "Action"]);
         this.setNextStatement(true, ["Animation", "Action"]);
         this.setColour(config.colour);
@@ -159,7 +170,8 @@
       };
       python.pythonGenerator.forBlock[config.type] = function(block, generator) {
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
-      var expr = config.anim + '(' + mobject + ')';
+      var runTime = block.getFieldValue('RUN_TIME');
+      var expr = config.anim + '(' + mobject + ', run_time=' + runTime + ')';
       if (isInsideAnimationGroup(block)) {
         return expr + ',\n';
       }
@@ -213,6 +225,9 @@
             .appendField("into")
         this.appendValueInput('TARGET')
             .setCheck('Mobject')
+        this.appendDummyInput('')
+            .appendField('run time')
+            .appendField(new Blockly.FieldNumber(1, 0), 'RUN_TIME');
         this.setInputsInline(true)
         this.setPreviousStatement(true, ["Animation", "Action"]);
         this.setNextStatement(true, ["Animation", "Action"]);
@@ -232,6 +247,9 @@
             .appendField("by")
         this.appendValueInput('TARGET')
             .setCheck('Mobject')
+        this.appendDummyInput('')
+            .appendField('run time')
+            .appendField(new Blockly.FieldNumber(1, 0), 'RUN_TIME');
         this.setInputsInline(true)
         this.setPreviousStatement(true, ["Animation", "Action"]);
         this.setNextStatement(true, ["Animation", "Action"]);
@@ -271,8 +289,12 @@
         this.appendValueInput('MOBJECT')
           .setCheck('Mobject')
           .appendField('Apply animation to');
+        this.appendDummyInput('')
+          .appendField('run time')
+          .appendField(new Blockly.FieldNumber(1, 0), 'RUN_TIME');
         this.appendStatementInput('METHODS')
           .setCheck('Applyable');
+        this.setInputsInline(true);
         this.setPreviousStatement(true, ["Animation", "Action"]);
         this.setNextStatement(true, ["Animation", "Action"]);
         this.setColour(200);
@@ -546,7 +568,8 @@
     python.pythonGenerator.forBlock['anim_transform'] = function(block, generator) {
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
       var target = generator.valueToCode(block, 'TARGET', python.Order.NONE) || 'None';
-      var expr = 'Transform(' + mobject + ', ' + target + ')';
+      var runTime = block.getFieldValue('RUN_TIME');
+      var expr = 'Transform(' + mobject + ', ' + target + ', run_time=' + runTime + ')';
       if (isInsideAnimationGroup(block)) {
         return expr + ',\n';
       }
@@ -556,7 +579,8 @@
         python.pythonGenerator.forBlock['anim_replace'] = function(block, generator) {
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
       var target = generator.valueToCode(block, 'TARGET', python.Order.NONE) || 'None';
-      var expr = 'ReplacementTransform(' + mobject + ', ' + target + ')';
+      var runTime = block.getFieldValue('RUN_TIME');
+      var expr = 'ReplacementTransform(' + mobject + ', ' + target + ', run_time=' + runTime + ')';
       if (isInsideAnimationGroup(block)) {
         return expr + ',\n';
       }
@@ -582,6 +606,7 @@
     };
     python.pythonGenerator.forBlock['apply_animation'] = function(block, generator) {
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
+      var runTime = block.getFieldValue('RUN_TIME');
       var allowedTypes = ['move_to', 'shift', 'set_x', 'set_y', 'next_to', 'align_to', 'to_edge', 'to_corner', 'rotate_by', 'set_stroke', 'set_fill'];
       var innerBlock = block.getInputTargetBlock('METHODS');
       if (!innerBlock) {
@@ -595,7 +620,7 @@
         chain += generator.blockToCode(innerBlock, true);
         innerBlock = innerBlock.getNextBlock();
       }
-      var expr = mobject + '.animate' + chain;
+      var expr = mobject + '.animate(run_time=' + runTime + ')' + chain;
       if (isInsideAnimationGroup(block)) {
         return expr + ',\n';
       }
@@ -707,6 +732,7 @@
     var workspace = Blockly.inject('blocklyDiv', {
       toolbox: toolbox
     });
+    window.dispatchEvent(new Event('resize'));
 
     // ---- Save / load / clear ----
     var STORAGE_KEY = 'manimBlocksWorkspace';
