@@ -258,6 +258,28 @@
       }
     }
 
+        Blockly.Blocks['anim_copy_transform'] = 
+    {
+      init: function() {
+        this.appendDummyInput()
+            .appendField("Transform copy of")
+        this.appendValueInput('MOBJECT')
+            .setCheck('Mobject')
+        this.appendDummyInput()
+            .appendField("into")
+        this.appendValueInput('TARGET')
+            .setCheck('Mobject')
+        this.appendDummyInput('')
+            .appendField('run time')
+            .appendField(new Blockly.FieldNumber(1, 0), 'RUN_TIME');
+        this.setInputsInline(true)
+        this.setPreviousStatement(true, ["Animation", "Action"]);
+        this.setNextStatement(true, ["Animation", "Action"]);
+        this.setColour(260);
+        this.setTooltip("Transforms a copy of one mobject by another via TransformFormCopy");
+      }
+    }
+
     Blockly.Blocks['anim_wait'] = {
       init: function() {
         this.appendDummyInput()
@@ -576,11 +598,22 @@
       return 'self.play(' + expr + ')\n';
     };
 
-        python.pythonGenerator.forBlock['anim_replace'] = function(block, generator) {
+    python.pythonGenerator.forBlock['anim_replace'] = function(block, generator) {
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
       var target = generator.valueToCode(block, 'TARGET', python.Order.NONE) || 'None';
       var runTime = block.getFieldValue('RUN_TIME');
       var expr = 'ReplacementTransform(' + mobject + ', ' + target + ', run_time=' + runTime + ')';
+      if (isInsideAnimationGroup(block)) {
+        return expr + ',\n';
+      }
+      return 'self.play(' + expr + ')\n';
+    };
+
+    python.pythonGenerator.forBlock['anim_copy_transform'] = function(block, generator) {
+      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
+      var target = generator.valueToCode(block, 'TARGET', python.Order.NONE) || 'None';
+      var runTime = block.getFieldValue('RUN_TIME');
+      var expr = 'TransformFromCopy(' + mobject + ', ' + target + ', run_time=' + runTime + ')';
       if (isInsideAnimationGroup(block)) {
         return expr + ',\n';
       }
@@ -691,6 +724,7 @@
             { "kind": "block", "type": "anim_unwrite" },
             { "kind": "block", "type": "anim_wait" },
             { "kind": "block", "type": "anim_transform"},
+            { "kind": "block", "type": "anim_copy_transform"},
             { "kind": "block", "type": "anim_replace"},
             { "kind": "block", "type": "animation_group" },
             { "kind": "block", "type": "apply_animation" }
