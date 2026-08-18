@@ -87,13 +87,33 @@
   <script>
     registerFieldColour();
 
+    // Appends a Number-typed socket instead of a plain field, pre-filled with a
+    // "shadow" math_number block showing the default value. A shadow block looks
+    // and behaves like a normal editable number until something else (a literal,
+    // a variable, a math block) gets dragged in to replace it.
+    function appendNumberInput(block, name, defaultValue, beforeLabel, afterLabel) {
+      if (beforeLabel) block.appendDummyInput('').appendField(beforeLabel);
+      var input = block.appendValueInput(name).setCheck('Number');
+      input.connection.setShadowState({ type: 'math_number', fields: { NUM: defaultValue || 0 } });
+      if (afterLabel) block.appendDummyInput('').appendField(afterLabel);
+      return input;
+    }
+
+    // Reads a Number-typed socket's value. The fallback only matters if a
+    // socket somehow ends up empty, since every socket starts pre-filled
+    // with a shadow block.
+    function numberValue(block, generator, name, fallback) {
+      return generator.valueToCode(block, name, python.Order.NONE) || (fallback || 0);
+    }
+
     // ---- 1. Define the blocks ----
     Blockly.Blocks['circle'] = {
       init: function() {
         this.appendDummyInput()
             .appendField("Circle")
-            .appendField("radius")
-            .appendField(new Blockly.FieldNumber(1, 0, 100), "RADIUS")
+            .appendField("radius");
+        appendNumberInput(this, 'RADIUS', 1);
+        this.setInputsInline(true);
         this.setOutput(true, "Mobject");
         this.setColour(230);
         this.setTooltip("Creates a Circle Mobject");
@@ -103,10 +123,12 @@
       init: function() {
         this.appendDummyInput()
             .appendField("Rectangle")
-            .appendField("width")
-            .appendField(new Blockly.FieldNumber(2, 0, 100), "WIDTH")
-            .appendField("height")
-            .appendField(new Blockly.FieldNumber(1, 0, 100), "HEIGHT")
+            .appendField("width");
+        appendNumberInput(this, 'WIDTH', 2);
+        this.appendDummyInput()
+            .appendField("height");
+        appendNumberInput(this, 'HEIGHT', 1);
+        this.setInputsInline(true);
         this.setOutput(true, "Mobject");
         this.setColour(230);
         this.setTooltip("Creates a Rectangle Mobject");
@@ -118,8 +140,9 @@
           this.appendDummyInput()
               .appendField("Text")
               .appendField(new Blockly.FieldTextInput(''), "TEXT")
-              .appendField("size")
-              .appendField(new Blockly.FieldNumber(48, 1, 100), "FONT_SIZE")
+              .appendField("size");
+          appendNumberInput(this, 'FONT_SIZE', 48);
+          this.setInputsInline(true);
           this.setOutput(true, "Mobject");
           this.setColour(230);
           this.setTooltip("Creates a Text Mobject");
@@ -130,8 +153,9 @@
           this.appendDummyInput()
               .appendField("Tex")
               .appendField(new Blockly.FieldTextInput(''), "TEX")
-              .appendField("size")
-              .appendField(new Blockly.FieldNumber(48, 1, 100), "FONT_SIZE")
+              .appendField("size");
+          appendNumberInput(this, 'FONT_SIZE', 48);
+          this.setInputsInline(true);
           this.setOutput(true, "Mobject");
           this.setColour(230);
           this.setTooltip("Creates a Tex Mobject");
@@ -142,8 +166,9 @@
           this.appendDummyInput()
               .appendField("MathTex")
               .appendField(new Blockly.FieldTextInput(''), "TEX")
-              .appendField("size")
-              .appendField(new Blockly.FieldNumber(48, 1, 100), "FONT_SIZE")
+              .appendField("size");
+          appendNumberInput(this, 'FONT_SIZE', 48);
+          this.setInputsInline(true);
           this.setOutput(true, "Mobject");
           this.setColour(230);
           this.setTooltip("Creates a MathTex Mobject");
@@ -158,9 +183,7 @@
           this.appendValueInput('MOBJECT')
           .setCheck('Mobject')
           .appendField(config.name);
-          this.appendDummyInput('')
-            .appendField('run time')
-            .appendField(new Blockly.FieldNumber(config.defaultRunTime || 1, 0), 'RUN_TIME');
+          appendNumberInput(this, 'RUN_TIME', config.defaultRunTime || 1, 'run time');
           this.setInputsInline(true);
         this.setPreviousStatement(true, ["Animation", "Action"]);
         this.setNextStatement(true, ["Animation", "Action"]);
@@ -170,7 +193,7 @@
       };
       python.pythonGenerator.forBlock[config.type] = function(block, generator) {
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
-      var runTime = block.getFieldValue('RUN_TIME');
+      var runTime = numberValue(block, generator, 'RUN_TIME', config.defaultRunTime || 1);
       var expr = config.anim + '(' + mobject + ', run_time=' + runTime + ')';
       if (isInsideAnimationGroup(block)) {
         return expr + ',\n';
@@ -225,9 +248,7 @@
             .appendField("into")
         this.appendValueInput('TARGET')
             .setCheck('Mobject')
-        this.appendDummyInput('')
-            .appendField('run time')
-            .appendField(new Blockly.FieldNumber(1, 0), 'RUN_TIME');
+        appendNumberInput(this, 'RUN_TIME', 1, 'run time');
         this.setInputsInline(true)
         this.setPreviousStatement(true, ["Animation", "Action"]);
         this.setNextStatement(true, ["Animation", "Action"]);
@@ -247,9 +268,7 @@
             .appendField("by")
         this.appendValueInput('TARGET')
             .setCheck('Mobject')
-        this.appendDummyInput('')
-            .appendField('run time')
-            .appendField(new Blockly.FieldNumber(1, 0), 'RUN_TIME');
+        appendNumberInput(this, 'RUN_TIME', 1, 'run time');
         this.setInputsInline(true)
         this.setPreviousStatement(true, ["Animation", "Action"]);
         this.setNextStatement(true, ["Animation", "Action"]);
@@ -269,9 +288,7 @@
             .appendField("into")
         this.appendValueInput('TARGET')
             .setCheck('Mobject')
-        this.appendDummyInput('')
-            .appendField('run time')
-            .appendField(new Blockly.FieldNumber(1, 0), 'RUN_TIME');
+        appendNumberInput(this, 'RUN_TIME', 1, 'run time');
         this.setInputsInline(true)
         this.setPreviousStatement(true, ["Animation", "Action"]);
         this.setNextStatement(true, ["Animation", "Action"]);
@@ -283,8 +300,9 @@
     Blockly.Blocks['anim_wait'] = {
       init: function() {
         this.appendDummyInput()
-            .appendField("Wait")
-            .appendField(new Blockly.FieldNumber(1, 0), "DURATION");
+            .appendField("Wait");
+        appendNumberInput(this, 'DURATION', 1);
+        this.setInputsInline(true);
         this.setPreviousStatement(true, "Action");
         this.setNextStatement(true, "Action");
         this.setColour(260);
@@ -296,10 +314,11 @@
       init: function() {
         this.appendDummyInput()
             .appendField("Animation Group")
-            .appendField("lag ratio")
-            .appendField(new Blockly.FieldNumber(0, 0, 1, 0.1), "LAG_RATIO");
+            .appendField("lag ratio");
+        appendNumberInput(this, 'LAG_RATIO', 0);
         this.appendStatementInput("ANIMATIONS")
             .setCheck("Animation");
+        this.setInputsInline(true);
         this.setPreviousStatement(true, "Action");
         this.setNextStatement(true, "Action");
         this.setColour(210);
@@ -311,9 +330,7 @@
         this.appendValueInput('MOBJECT')
           .setCheck('Mobject')
           .appendField('Apply animation to');
-        this.appendDummyInput('')
-          .appendField('run time')
-          .appendField(new Blockly.FieldNumber(1, 0), 'RUN_TIME');
+        appendNumberInput(this, 'RUN_TIME', 1, 'run time');
         this.appendStatementInput('METHODS')
           .setCheck('Applyable');
         this.setInputsInline(true);
@@ -363,6 +380,10 @@
           }
           this.appendValueInput('MOBJECT').setCheck('Mobject');
           config.fields.forEach(function(f) {
+            if (f.kind === 'number') {
+              appendNumberInput(this, f.name, f.default, f.before, f.after);
+              return;
+            }
             var input = this.appendDummyInput('');
             if (f.before) input.appendField(f.before);
             var field;
@@ -394,7 +415,9 @@
         var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
         var vals = {};
         config.fields.forEach(function(f) {
-          vals[f.name] = block.getFieldValue(f.name);
+          vals[f.name] = (f.kind === 'number')
+            ? numberValue(block, generator, f.name, f.default)
+            : block.getFieldValue(f.name);
         });
         var call = config.buildCall(vals);
         if (isInsideApplyAnimation(block)) {
@@ -491,10 +514,7 @@
           .setCheck('Mobject');
         this.appendDummyInput('')
           .appendField(new Blockly.FieldDropdown(DIRECTIONS), 'DIR');
-        this.appendDummyInput('')
-          .appendField('buff');
-        this.appendDummyInput('')
-          .appendField(new Blockly.FieldNumber(0.5, 0, 5), 'BUFF');
+        appendNumberInput(this, 'BUFF', 0.5, 'buff');
         this.setInputsInline(true)
         this.setPreviousStatement(true, ["Action", "Applyable"]);
         this.setNextStatement(true, ["Action", "Applyable"]);
@@ -546,31 +566,31 @@
     // ---- 2. Define blocks turn into Python code ----
     // Mobjects
     python.pythonGenerator.forBlock['circle'] = function(block, generator) {
-      var radius = block.getFieldValue('RADIUS');
+      var radius = numberValue(block, generator, 'RADIUS', 1);
       var code = 'Circle(radius=' + radius + ')';
       return [code, python.Order.FUNCTION_CALL];
     };
     python.pythonGenerator.forBlock['rectangle'] = function(block, generator) {
-      var width = block.getFieldValue('WIDTH');
-      var height = block.getFieldValue('HEIGHT');
+      var width = numberValue(block, generator, 'WIDTH', 2);
+      var height = numberValue(block, generator, 'HEIGHT', 1);
       var code = 'Rectangle(width=' + width + ', height='+height+')';
       return [code, python.Order.FUNCTION_CALL];
     };
     python.pythonGenerator.forBlock['text'] = function(block, generator) {
       var text = block.getFieldValue('TEXT');
-      var font_size = block.getFieldValue('FONT_SIZE')
+      var font_size = numberValue(block, generator, 'FONT_SIZE', 48);
       var code = 'Text("' + text + '", font_size=' + font_size +')';
       return [code, python.Order.FUNCTION_CALL];
     };
     python.pythonGenerator.forBlock['tex'] = function(block, generator) {
       var tex = block.getFieldValue('TEX');
-      var font_size = block.getFieldValue('FONT_SIZE')
+      var font_size = numberValue(block, generator, 'FONT_SIZE', 48);
       var code = 'Tex(r"' + tex + '", font_size=' + font_size +')';
       return [code, python.Order.FUNCTION_CALL];
     };
     python.pythonGenerator.forBlock['math_tex'] = function(block, generator) {
       var tex = block.getFieldValue('TEX');
-      var font_size = block.getFieldValue('FONT_SIZE')
+      var font_size = numberValue(block, generator, 'FONT_SIZE', 48);
       var code = 'MathTex(r"' + tex + '", font_size=' + font_size +')';
       return [code, python.Order.FUNCTION_CALL];
     };
@@ -590,7 +610,7 @@
     python.pythonGenerator.forBlock['anim_transform'] = function(block, generator) {
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
       var target = generator.valueToCode(block, 'TARGET', python.Order.NONE) || 'None';
-      var runTime = block.getFieldValue('RUN_TIME');
+      var runTime = numberValue(block, generator, 'RUN_TIME', 1);
       var expr = 'Transform(' + mobject + ', ' + target + ', run_time=' + runTime + ')';
       if (isInsideAnimationGroup(block)) {
         return expr + ',\n';
@@ -601,7 +621,7 @@
     python.pythonGenerator.forBlock['anim_replace'] = function(block, generator) {
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
       var target = generator.valueToCode(block, 'TARGET', python.Order.NONE) || 'None';
-      var runTime = block.getFieldValue('RUN_TIME');
+      var runTime = numberValue(block, generator, 'RUN_TIME', 1);
       var expr = 'ReplacementTransform(' + mobject + ', ' + target + ', run_time=' + runTime + ')';
       if (isInsideAnimationGroup(block)) {
         return expr + ',\n';
@@ -612,7 +632,7 @@
     python.pythonGenerator.forBlock['anim_copy_transform'] = function(block, generator) {
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
       var target = generator.valueToCode(block, 'TARGET', python.Order.NONE) || 'None';
-      var runTime = block.getFieldValue('RUN_TIME');
+      var runTime = numberValue(block, generator, 'RUN_TIME', 1);
       var expr = 'TransformFromCopy(' + mobject + ', ' + target + ', run_time=' + runTime + ')';
       if (isInsideAnimationGroup(block)) {
         return expr + ',\n';
@@ -621,11 +641,11 @@
     };
 
     python.pythonGenerator.forBlock['anim_wait'] = function(block, generator) {
-      var duration = block.getFieldValue('DURATION');
+      var duration = numberValue(block, generator, 'DURATION', 1);
       return 'self.wait(' + duration + ')\n';
     };
     python.pythonGenerator.forBlock['animation_group'] = function(block, generator) {
-      var lagRatio = block.getFieldValue('LAG_RATIO');
+      var lagRatio = numberValue(block, generator, 'LAG_RATIO', 0);
       var allowedTypes = ['anim_create', 'anim_uncreate', 'anim_fadein', 'anim_fadeout', 'anim_write', 'anim_unwrite', 'anim_transform', 'anim_replace', 'apply_animation'];
       var innerBlock = block.getInputTargetBlock('ANIMATIONS');
       while (innerBlock) {
@@ -639,7 +659,7 @@
     };
     python.pythonGenerator.forBlock['apply_animation'] = function(block, generator) {
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
-      var runTime = block.getFieldValue('RUN_TIME');
+      var runTime = numberValue(block, generator, 'RUN_TIME', 1);
       var allowedTypes = ['move_to', 'shift', 'set_x', 'set_y', 'next_to', 'align_to', 'to_edge', 'to_corner', 'rotate_by', 'set_stroke', 'set_fill'];
       var innerBlock = block.getInputTargetBlock('METHODS');
       if (!innerBlock) {
@@ -667,7 +687,7 @@
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
       var ref = generator.valueToCode(block, "REFERENCE", python.Order.NONE) || 'None';
       var dir = block.getFieldValue('DIR');
-      var buff = block.getFieldValue('BUFF');
+      var buff = numberValue(block, generator, 'BUFF', 0.5);
       var call = '.next_to(' + ref + ', ' + dir + ', buff=' + buff + ')';
       if (isInsideApplyAnimation(block)) {
         return call;
@@ -750,6 +770,13 @@
             {"kind": "block", "type": "to_corner"},
             {"kind": "block", "type": "rotate_by"}
             
+          ]
+        },
+        {"kind": "category",
+          "name": "Numbers",
+          "colour": "65",
+          "contents": [
+            {"kind": "block", "type": "math_number"}
           ]
         },
         {"kind": "category",
