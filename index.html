@@ -368,6 +368,33 @@
       ["down", "DOWN"]
     ];
 
+    // Point Block //
+    Blockly.Blocks['point'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField("Point");
+    appendNumberInput(this, 'X', 0, '', 'x');
+    appendNumberInput(this, 'Y', 0, '', 'y');
+    this.setInputsInline(true);
+    this.setOutput(true, "Point");
+    this.setColour(230);
+    this.setTooltip("Creates a point [x, y, 0]");
+  }
+};
+
+    Blockly.Blocks['polygon'] = {
+      init: function() {
+        this.appendDummyInput()
+            .appendField("Polygon")
+            .appendField("points");
+        this.appendValueInput('POINTS')
+            .setCheck('Array');
+        this.setInputsInline(true);
+        this.setOutput(true, "Mobject");
+        this.setColour(230);
+        this.setTooltip("Creates a Polygon from a list of points. Plug in a 'create list' block from the Lists category, then add Point blocks to it.");
+      }
+    };
     // ---- Factory for the shared shape of Positioning/Style blocks: ----
     // one Mobject socket, a handful of fields, and a generator that
     // returns either a full statement or a bare ".method(...)" fragment
@@ -595,6 +622,20 @@
       return [code, python.Order.FUNCTION_CALL];
     };
 
+    // Point
+  python.pythonGenerator.forBlock['point'] = function(block, generator) {
+  var x = numberValue(block, generator, 'X', 0);
+  var y = numberValue(block, generator, 'Y', 0);
+  var code = '[' + x + ', ' + y + ', 0]';
+  return [code, python.Order.FUNCTION_CALL];
+    };
+
+    // Polygon
+    python.pythonGenerator.forBlock['polygon'] = function(block, generator) {
+      var points = generator.valueToCode(block, 'POINTS', python.Order.NONE) || '[]';
+      var code = 'Polygon(*' + points + ')';
+      return [code, python.Order.FUNCTION_CALL];
+    };
     // Animations
     // Returns true if this block is directly inside an AnimationGroup's mouth
     function isInsideAnimationGroup(block) {
@@ -721,6 +762,9 @@
               "kind": "block", "type": "rectangle"
             },
             {
+              "kind": "block", "type": "polygon"
+            },
+            {
               "kind": "block", "type": "text"
             },
             {
@@ -760,6 +804,7 @@
           "name": "Positioning",
           "colour": "225",
           "contents": [
+            {"kind": "block", "type": "point"},
             {"kind": "block", "type": "move_to"},
             {"kind": "block", "type": "shift"},
             {"kind": "block", "type": "set_x"},
