@@ -390,7 +390,7 @@
       init: function() {
         this.appendDummyInput()
             .appendField("Polygon")
-            .appendField("points");
+            .appendField("vertices");
         this.appendValueInput('POINTS')
             .setCheck('Array');
         this.setInputsInline(true);
@@ -399,7 +399,20 @@
         this.setTooltip("Creates a Polygon from a list of points. Plug in a 'create list' block from the Lists category, then add Point blocks to it.");
       }
     };
-
+    
+    Blockly.Blocks['regular_polygon'] = {
+      init: function() {
+        this.appendDummyInput()
+        .appendField("Regular Polygon");
+        this.appendDummyInput()
+        .appendField("sides");
+        appendNumberInput(this, 'SIDES', 1);
+        this.setInputsInline(true);
+        this.setOutput(true, "Mobject");
+        this.setColour(230);
+        this.setTooltip("Creates a Regular Polygon Mobjects with n-sides");
+      }
+    }
     // VGroup is tagged with BOTH "Mobject" and "VGroup" - the first lets it
     // plug into any ordinary Mobject socket (Create, shift, set_fill, ...),
     // the second lets arrange/arrange_in_grid below restrict themselves to
@@ -657,6 +670,31 @@
         this.setColour(225);
       }
     };
+    // ---- Sizing blocks ----
+    defineMobjectMethodBlock({
+      type: 'scale',
+      colour: 225,
+      fields: [
+        { name: 'COEFF', kind: 'number', default: 1, before: 'scale by', after: '' }
+      ],
+      buildCall: function(v) { return '.scale(' + v.COEFF + ')'; }
+    });
+    defineMobjectMethodBlock({
+      type: 'scale_to_fit_width',
+      colour: 225,
+      fields: [
+        { name: 'WIDTH', kind: 'number', default: 1, before: 'scale to fit width', after: '' }
+      ],
+      buildCall: function(v) { return '.scale_to_fit_width(' + v.WIDTH + ')'; }
+    });
+    defineMobjectMethodBlock({
+      type: 'scale_to_fit_height',
+      colour: 225,
+      fields: [
+        { name: 'HEIGHT', kind: 'number', default: 1, before: 'scale to fit height', after: '' }
+      ],
+      buildCall: function(v) { return '.scale_to_fit_height(' + v.HEIGHT + ')'; }
+    });
 
     // ---- Style blocks ----
     defineMobjectMethodBlock({
@@ -729,7 +767,11 @@
       var code = 'Polygon(*' + points + ')';
       return [code, python.Order.FUNCTION_CALL];
     };
-
+    python.pythonGenerator.forBlock['regular_polygon'] = function(block, generator) {
+      var sides = numberValue(block, generator, 'SIDES', 3);
+      var code = 'RegularPolygon(' + sides + ')';
+      return [code, python.Order.FUNCTION_CALL];
+    };
     // VGroup
     python.pythonGenerator.forBlock['vgroup'] = function(block, generator) {
       var mobjects = generator.valueToCode(block, 'MOBJECTS', python.Order.NONE) || '[]';
@@ -833,7 +875,8 @@
     python.pythonGenerator.forBlock['apply_animation'] = function(block, generator) {
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
       var runTime = numberValue(block, generator, 'RUN_TIME', 1);
-      var allowedTypes = ['move_to', 'shift', 'set_x', 'set_y', 'next_to', 'align_to', 'to_edge', 'to_corner', 'rotate_by', 'set_stroke', 'set_fill', 'arrange', 'arrange_in_grid'];
+      var allowedTypes = ['move_to', 'shift', 'set_x', 'set_y', 'next_to', 'align_to', 'to_edge', 'to_corner', 'rotate_by',
+       'set_stroke', 'set_fill', 'arrange', 'arrange_in_grid', 'scale', 'scale_to_fit_width', 'scale_to_fit_height'];
       var innerBlock = block.getInputTargetBlock('METHODS');
       if (!innerBlock) {
         return '# ERROR: Apply Animation needs at least one Positioning or Style block inside it.\n';
@@ -860,7 +903,7 @@
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
       var ref = generator.valueToCode(block, "REFERENCE", python.Order.NONE) || 'None';
       var dir = block.getFieldValue('DIR');
-      var buff = numberValue(block, generator, 'BUFF', 0.5);
+      var buff = numberValue(block, generator, 'BUFF', 0.25);
       var call = '.next_to(' + ref + ', ' + dir + ', buff=' + buff + ')';
       if (isInsideApplyAnimation(block)) {
         return call;
@@ -895,6 +938,9 @@
             },
             {
               "kind": "block", "type": "polygon"
+            },
+            {
+              "kind": "block", "type": "regular_polygon"
             },
             {
               "kind": "block", "type": "vgroup"
@@ -939,7 +985,7 @@
           "custom": "VARIABLE"
         },
         {"kind": "category",
-          "name": "Positioning",
+          "name": "Position",
           "colour": "225",
           "contents": [
             {"kind": "block", "type": "point"},
@@ -955,6 +1001,15 @@
             {"kind": "block", "type": "arrange"},
             {"kind": "block", "type": "arrange_in_grid"}
             
+          ]
+        },
+        {"kind": "category",
+          "name": "Size",
+          "colour": "200",
+          "contents": [
+            {"kind": "block", "type": "scale"},
+            {"kind": "block", "type": "scale_to_fit_width"},
+            {"kind": "block", "type": "scale_to_fit_height"}
           ]
         },
         {"kind": "category",
