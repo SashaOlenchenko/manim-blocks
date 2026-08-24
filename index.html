@@ -24,6 +24,7 @@
       flex-direction: column;
       gap: 10px;
       min-height: 0;
+      min-width: 0;
     }
     #blocklyDiv {
       width: 100%;
@@ -39,8 +40,11 @@
     #outputArea {
       background: #f5f5f5;
       padding: 10px;
-      overflow: auto;
-      max-height: 200px;
+      max-height: 40vh;
+      overflow-y: auto;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
     #statusMessage {
       min-height: 20px;
@@ -395,6 +399,59 @@
         this.setTooltip("Creates a Polygon from a list of points. Plug in a 'create list' block from the Lists category, then add Point blocks to it.");
       }
     };
+
+    // VGroup is tagged with BOTH "Mobject" and "VGroup" - the first lets it
+    // plug into any ordinary Mobject socket (Create, shift, set_fill, ...),
+    // the second lets arrange/arrange_in_grid below restrict themselves to
+    // only accept Groups, since those methods don't exist on a lone Mobject.
+    Blockly.Blocks['vgroup'] = {
+      init: function() {
+        this.appendDummyInput()
+            .appendField("Group")
+            .appendField("of");
+        this.appendValueInput('MOBJECTS')
+            .setCheck('Array');
+        this.setInputsInline(true);
+        this.setOutput(true, ["Mobject", "VGroup"]);
+        this.setColour(230);
+        this.setTooltip("Creates a Group from a list of Mobjects. Plug in a 'create list' block from the Lists category, then add Mobject blocks to it. Behaves like any other Mobject everywhere else.");
+      }
+    };
+
+    Blockly.Blocks['vgroup_add'] = {
+      init: function() {
+        this.appendValueInput('GROUP')
+            .setCheck('VGroup')
+            .appendField('add to Group');
+        this.appendValueInput('MOBJECT')
+            .setCheck('Mobject')
+            .appendField('mobject');
+        this.setInputsInline(true);
+        this.setPreviousStatement(true, "Action");
+        this.setNextStatement(true, "Action");
+        this.setColour(230);
+        this.setTooltip("Adds a Mobject to an existing Group");
+      }
+    };
+
+    // A generic Scratch-style "add item to list" block - Blockly's core
+    // Lists category doesn't ship one, only the +/- mutator on
+    // lists_create_with at creation time.
+    Blockly.Blocks['list_add_item'] = {
+      init: function() {
+        this.appendValueInput('LIST')
+            .setCheck('Array')
+            .appendField('add to list');
+        this.appendValueInput('ITEM')
+            .setCheck('Number')
+            .appendField('item');
+        this.setInputsInline(true);
+        this.setPreviousStatement(true, "Action");
+        this.setNextStatement(true, "Action");
+        this.setColour(260);
+        this.setTooltip("Appends a number to the end of a list");
+      }
+    };
     // ---- Factory for the shared shape of Positioning/Style blocks: ----
     // one Mobject socket, a handful of fields, and a generator that
     // returns either a full statement or a bare ".method(...)" fragment
@@ -548,6 +605,42 @@
         this.setColour(225);
       }
     };
+    Blockly.Blocks['arrange'] = {
+      init: function() {
+        this.appendValueInput('MOBJECT')
+            .setCheck('VGroup')
+            .appendField('arrange');
+        this.appendDummyInput('')
+            .appendField(new Blockly.FieldDropdown(DIRECTIONS), 'DIR');
+        appendNumberInput(this, 'BUFF', 0.5, 'buff');
+        this.setInputsInline(true);
+        this.setPreviousStatement(true, ["Action", "Applyable"]);
+        this.setNextStatement(true, ["Action", "Applyable"]);
+        this.setColour(225);
+        this.setTooltip("Arranges a Group's Mobjects in a line along a direction");
+      }
+    };
+
+    Blockly.Blocks['arrange_in_grid'] = {
+      init: function() {
+        this.appendValueInput('MOBJECT')
+            .setCheck('VGroup')
+            .appendField('arrange in grid');
+        this.appendDummyInput('')
+            .appendField('rows');
+        appendNumberInput(this, 'ROWS', 2);
+        this.appendDummyInput('')
+            .appendField('cols');
+        appendNumberInput(this, 'COLS', 2);
+        appendNumberInput(this, 'BUFF', 0.5, 'buff');
+        this.setInputsInline(true);
+        this.setPreviousStatement(true, ["Action", "Applyable"]);
+        this.setNextStatement(true, ["Action", "Applyable"]);
+        this.setColour(225);
+        this.setTooltip("Arranges a Group's Mobjects into a grid");
+      }
+    };
+
     Blockly.Blocks['align_to'] = {
       init: function() {
         this.appendValueInput('MOBJECT')
@@ -636,6 +729,23 @@
       var code = 'Polygon(*' + points + ')';
       return [code, python.Order.FUNCTION_CALL];
     };
+
+    // VGroup
+    python.pythonGenerator.forBlock['vgroup'] = function(block, generator) {
+      var mobjects = generator.valueToCode(block, 'MOBJECTS', python.Order.NONE) || '[]';
+      var code = 'VGroup(*' + mobjects + ')';
+      return [code, python.Order.FUNCTION_CALL];
+    };
+    python.pythonGenerator.forBlock['vgroup_add'] = function(block, generator) {
+      var group = generator.valueToCode(block, 'GROUP', python.Order.NONE) || 'None';
+      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
+      return group + '.add(' + mobject + ')\n';
+    };
+    python.pythonGenerator.forBlock['list_add_item'] = function(block, generator) {
+      var list = generator.valueToCode(block, 'LIST', python.Order.NONE) || 'None';
+      var item = generator.valueToCode(block, 'ITEM', python.Order.NONE) || 'None';
+      return list + '.append(' + item + ')\n';
+    };
     // Animations
     // Returns true if this block is directly inside an AnimationGroup's mouth
     function isInsideAnimationGroup(block) {
@@ -647,6 +757,28 @@
       var parent = block.getSurroundParent();
       return parent !== null && parent.type === 'apply_animation';
     }
+
+    python.pythonGenerator.forBlock['arrange'] = function(block, generator) {
+      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
+      var dir = block.getFieldValue('DIR');
+      var buff = numberValue(block, generator, 'BUFF', 0.5);
+      var call = '.arrange(' + dir + ', buff=' + buff + ')';
+      if (isInsideApplyAnimation(block)) {
+        return call;
+      }
+      return mobject + call + '\n';
+    };
+    python.pythonGenerator.forBlock['arrange_in_grid'] = function(block, generator) {
+      var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
+      var rows = numberValue(block, generator, 'ROWS', 2);
+      var cols = numberValue(block, generator, 'COLS', 2);
+      var buff = numberValue(block, generator, 'BUFF', 0.5);
+      var call = '.arrange_in_grid(rows=' + rows + ', cols=' + cols + ', buff=' + buff + ')';
+      if (isInsideApplyAnimation(block)) {
+        return call;
+      }
+      return mobject + call + '\n';
+    };
     
     python.pythonGenerator.forBlock['anim_transform'] = function(block, generator) {
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
@@ -701,7 +833,7 @@
     python.pythonGenerator.forBlock['apply_animation'] = function(block, generator) {
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
       var runTime = numberValue(block, generator, 'RUN_TIME', 1);
-      var allowedTypes = ['move_to', 'shift', 'set_x', 'set_y', 'next_to', 'align_to', 'to_edge', 'to_corner', 'rotate_by', 'set_stroke', 'set_fill'];
+      var allowedTypes = ['move_to', 'shift', 'set_x', 'set_y', 'next_to', 'align_to', 'to_edge', 'to_corner', 'rotate_by', 'set_stroke', 'set_fill', 'arrange', 'arrange_in_grid'];
       var innerBlock = block.getInputTargetBlock('METHODS');
       if (!innerBlock) {
         return '# ERROR: Apply Animation needs at least one Positioning or Style block inside it.\n';
@@ -765,6 +897,12 @@
               "kind": "block", "type": "polygon"
             },
             {
+              "kind": "block", "type": "vgroup"
+            },
+            {
+              "kind": "block", "type": "vgroup_add"
+            },
+            {
               "kind": "block", "type": "text"
             },
             {
@@ -813,7 +951,9 @@
             {"kind": "block", "type": "align_to"},
             {"kind": "block", "type": "to_edge"},
             {"kind": "block", "type": "to_corner"},
-            {"kind": "block", "type": "rotate_by"}
+            {"kind": "block", "type": "rotate_by"},
+            {"kind": "block", "type": "arrange"},
+            {"kind": "block", "type": "arrange_in_grid"}
             
           ]
         },
@@ -875,6 +1015,7 @@
           "categorystyle": "list_category",
           "contents": [
             { "kind": "block", "type": "lists_create_with" },
+            { "kind": "block", "type": "list_add_item" },
             { "kind": "block", "type": "lists_repeat" },
             { "kind": "block", "type": "lists_length" },
             { "kind": "block", "type": "lists_isEmpty" },
