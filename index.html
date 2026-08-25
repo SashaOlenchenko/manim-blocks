@@ -138,6 +138,19 @@
         this.setTooltip("Creates a Rectangle Mobject");
       }
     };
+    Blockly.Blocks['regular_polygon'] = {
+      init: function() {
+        this.appendDummyInput()
+        .appendField("Regular Polygon");
+        this.appendDummyInput()
+        .appendField("sides");
+        appendNumberInput(this, 'SIDES', 1);
+        this.setInputsInline(true);
+        this.setOutput(true, "Mobject");
+        this.setColour(230);
+        this.setTooltip("Creates a Regular Polygon Mobjects with n-sides");
+      }
+    }
 
     Blockly.Blocks['text']= {
       init: function() {
@@ -773,6 +786,31 @@
         this.setColour(225);
       }
     };
+    // ---- Sizing blocks ----
+    defineMobjectMethodBlock({
+      type: 'scale',
+      colour: 225,
+      fields: [
+        { name: 'COEFF', kind: 'number', default: 1, before: 'scale by', after: '' }
+      ],
+      buildCall: function(v) { return '.scale(' + v.COEFF + ')'; }
+    });
+    defineMobjectMethodBlock({
+      type: 'scale_to_fit_width',
+      colour: 225,
+      fields: [
+        { name: 'WIDTH', kind: 'number', default: 1, before: 'scale to fit width', after: '' }
+      ],
+      buildCall: function(v) { return '.scale_to_fit_width(' + v.WIDTH + ')'; }
+    });
+    defineMobjectMethodBlock({
+      type: 'scale_to_fit_height',
+      colour: 225,
+      fields: [
+        { name: 'HEIGHT', kind: 'number', default: 1, before: 'scale to fit height', after: '' }
+      ],
+      buildCall: function(v) { return '.scale_to_fit_height(' + v.HEIGHT + ')'; }
+    });
 
     // ---- Style blocks ----
     defineMobjectMethodBlock({
@@ -839,6 +877,11 @@
   return [code, python.Order.FUNCTION_CALL];
     };
 
+    python.pythonGenerator.forBlock['regular_polygon'] = function(block, generator) {
+      var sides = numberValue(block, generator, 'SIDES', 3);
+      var code = 'RegularPolygon(' + sides + ')';
+      return [code, python.Order.FUNCTION_CALL];
+    };
     python.pythonGenerator.forBlock['vgroup_add'] = function(block, generator) {
       var group = generator.valueToCode(block, 'GROUP', python.Order.NONE) || 'None';
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
@@ -964,7 +1007,7 @@
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
       var ref = generator.valueToCode(block, "REFERENCE", python.Order.NONE) || 'None';
       var dir = block.getFieldValue('DIR');
-      var buff = numberValue(block, generator, 'BUFF', 0.5);
+      var buff = numberValue(block, generator, 'BUFF', 0.25);
       var call = '.next_to(' + ref + ', ' + dir + ', buff=' + buff + ')';
       if (isInsideApplyAnimation(block)) {
         return call;
@@ -999,6 +1042,9 @@
             },
             {
               "kind": "block", "type": "polygon"
+            },
+            {
+              "kind": "block", "type": "regular_polygon"
             },
             {
               "kind": "block", "type": "vgroup"
@@ -1043,7 +1089,7 @@
           "custom": "VARIABLE"
         },
         {"kind": "category",
-          "name": "Positioning",
+          "name": "Position",
           "colour": "225",
           "contents": [
             {"kind": "block", "type": "point"},
@@ -1059,6 +1105,15 @@
             {"kind": "block", "type": "arrange"},
             {"kind": "block", "type": "arrange_in_grid"}
             
+          ]
+        },
+        {"kind": "category",
+          "name": "Size",
+          "colour": "200",
+          "contents": [
+            {"kind": "block", "type": "scale"},
+            {"kind": "block", "type": "scale_to_fit_width"},
+            {"kind": "block", "type": "scale_to_fit_height"}
           ]
         },
         {"kind": "category",
