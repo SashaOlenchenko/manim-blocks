@@ -510,7 +510,7 @@
     defineVariadicMobjectBlock({
       type: 'polygon',
       label: 'Polygon',
-      itemLabel: 'point',
+      itemLabel: 'vertex',
       itemCheck: 'Point',
       constructorName: 'Polygon',
       defaultItems: 3,
@@ -714,7 +714,7 @@
           .setCheck('Mobject');
         this.appendDummyInput('')
           .appendField(new Blockly.FieldDropdown(DIRECTIONS), 'DIR');
-        appendNumberInput(this, 'BUFF', 0.5, 'buff');
+        appendNumberInput(this, 'BUFF', 0.25, 'buff');
         this.setInputsInline(true)
         this.setPreviousStatement(true, ["Action", "Applyable"]);
         this.setNextStatement(true, ["Action", "Applyable"]);
@@ -936,7 +936,8 @@
     python.pythonGenerator.forBlock['apply_animation'] = function(block, generator) {
       var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
       var runTime = numberValue(block, generator, 'RUN_TIME', 1);
-      var allowedTypes = ['move_to', 'shift', 'set_x', 'set_y', 'next_to', 'align_to', 'to_edge', 'to_corner', 'rotate_by', 'set_stroke', 'set_fill', 'arrange', 'arrange_in_grid'];
+      var allowedTypes = ['move_to', 'shift', 'set_x', 'set_y', 'next_to', 'align_to', 'to_edge', 'to_corner', 'rotate_by',
+       'set_stroke', 'set_fill', 'arrange', 'arrange_in_grid', 'scale', 'scale_to_fit_width', 'scale_to_fit_height'];
       var innerBlock = block.getInputTargetBlock('METHODS');
       if (!innerBlock) {
         return '# ERROR: Apply Animation needs at least one Positioning or Style block inside it.\n';
