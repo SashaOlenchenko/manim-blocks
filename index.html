@@ -138,6 +138,19 @@
         this.setTooltip("Creates a Rectangle Mobject");
       }
     };
+    Blockly.Blocks['regular_polygon'] = {
+      init: function() {
+        this.appendDummyInput()
+        .appendField("Regular Polygon");
+        this.appendDummyInput()
+        .appendField("sides");
+        appendNumberInput(this, 'SIDES', 1);
+        this.setInputsInline(true);
+        this.setOutput(true, "Mobject");
+        this.setColour(230);
+        this.setTooltip("Creates a Regular Polygon Mobjects with n-sides");
+      }
+    }
 
     Blockly.Blocks['text']= {
       init: function() {
@@ -386,50 +399,153 @@
   }
 };
 
-    Blockly.Blocks['polygon'] = {
-      init: function() {
-        this.appendDummyInput()
-            .appendField("Polygon")
-            .appendField("vertices");
-        this.appendValueInput('POINTS')
-            .setCheck('Array');
-        this.setInputsInline(true);
-        this.setOutput(true, "Mobject");
-        this.setColour(230);
-        this.setTooltip("Creates a Polygon from a list of points. Plug in a 'create list' block from the Lists category, then add Point blocks to it.");
-      }
-    };
-    
-    Blockly.Blocks['regular_polygon'] = {
-      init: function() {
-        this.appendDummyInput()
-        .appendField("Regular Polygon");
-        this.appendDummyInput()
-        .appendField("sides");
-        appendNumberInput(this, 'SIDES', 1);
-        this.setInputsInline(true);
-        this.setOutput(true, "Mobject");
-        this.setColour(230);
-        this.setTooltip("Creates a Regular Polygon Mobjects with n-sides");
-      }
+    // A factory for blocks that take a variable number of same-typed items,
+    // with a proper gear-icon mutator instead of requiring a separate
+    // lists_create_with block plugged in. Modeled closely on Blockly's own
+    // canonical list mutator (the same mechanism lists_create_with itself
+    // uses internally), adapted to the modern saveExtraState/loadExtraState
+    // serialization API and Blockly.icons.MutatorIcon.
+    function defineVariadicMobjectBlock(config) {
+      var containerType = config.type + '_mutator_container';
+      var itemType = config.type + '_mutator_item';
+
+      // The popup's header - just a label plus a stack for item placeholders
+      Blockly.Blocks[containerType] = {
+        init: function() {
+          this.appendDummyInput().appendField(config.itemLabel + 's');
+          this.appendStatementInput('STACK');
+          this.setColour(config.colour);
+          this.contextMenu = false;
+        }
+      };
+
+      // One placeholder block per item, shown inside the popup
+      Blockly.Blocks[itemType] = {
+        init: function() {
+          this.appendDummyInput().appendField(config.itemLabel);
+          this.setPreviousStatement(true);
+          this.setNextStatement(true);
+          this.setColour(config.colour);
+          this.contextMenu = false;
+        }
+      };
+
+      Blockly.Blocks[config.type] = {
+        init: function() {
+          this.itemCount_ = config.defaultItems || 1;
+          this.appendDummyInput('TOP').appendField(config.label);
+          this.updateShape_();
+          this.setInputsInline(false);
+          this.setOutput(true, config.outputCheck || "Mobject");
+          this.setColour(config.colour);
+          this.setMutator(new Blockly.icons.MutatorIcon([itemType], this));
+          if (config.tooltip) this.setTooltip(config.tooltip);
+        },
+
+        // Rebuilds the ITEM0, ITEM1, ... sockets to match itemCount_.
+        updateShape_: function() {
+          var i = 0;
+          while (this.getInput('ITEM' + i)) {
+            this.removeInput('ITEM' + i);
+            i++;
+          }
+          for (var n = 0; n < this.itemCount_; n++) {
+            this.appendValueInput('ITEM' + n)
+                .setCheck(config.itemCheck)
+                .appendField(config.itemLabel + ' ' + (n+1));
+          }
+        },
+
+        saveExtraState: function() {
+          return { itemCount: this.itemCount_ };
+        },
+        loadExtraState: function(state) {
+          this.itemCount_ = state['itemCount'];
+          this.updateShape_();
+        },
+
+        // Builds the popup workspace's contents when the gear icon is clicked
+        decompose: function(workspace) {
+          var containerBlock = workspace.newBlock(containerType);
+          containerBlock.initSvg();
+          var connection = containerBlock.getInput('STACK').connection;
+          for (var i = 0; i < this.itemCount_; i++) {
+            var itemBlock = workspace.newBlock(itemType);
+            itemBlock.initSvg();
+            connection.connect(itemBlock.previousConnection);
+            connection = itemBlock.nextConnection;
+          }
+          return containerBlock;
+        },
+
+        // Rebuilds the real block's sockets to match the popup's current stack
+        compose: function(containerBlock) {
+          var itemBlock = containerBlock.getInputTargetBlock('STACK');
+          var connections = [];
+          while (itemBlock) {
+            connections.push(itemBlock.valueConnection_ || null);
+            itemBlock = itemBlock.nextConnection && itemBlock.nextConnection.targetBlock();
+          }
+          this.itemCount_ = connections.length;
+          this.updateShape_();
+          for (var i = 0; i < this.itemCount_; i++) {
+            if (connections[i]) {
+              var input = this.getInput('ITEM' + i);
+              connections[i].connect(input.connection);
+            }
+          }
+        },
+
+        // Remembers which existing plugged-in blocks belong to which popup row,
+        // so compose() can reconnect them correctly after a rebuild.
+        saveConnections: function(containerBlock) {
+          var itemBlock = containerBlock.getInputTargetBlock('STACK');
+          var i = 0;
+          while (itemBlock) {
+            var input = this.getInput('ITEM' + i);
+            itemBlock.valueConnection_ = input && input.connection.targetConnection;
+            i++;
+            itemBlock = itemBlock.nextConnection && itemBlock.nextConnection.targetBlock();
+          }
+        }
+      };
+
+      python.pythonGenerator.forBlock[config.type] = function(block, generator) {
+        var items = [];
+        for (var i = 0; i < block.itemCount_; i++) {
+          items.push(generator.valueToCode(block, 'ITEM' + i, python.Order.NONE) || 'None');
+        }
+        var code = config.constructorName + '(' + items.join(', ') + ')';
+        return [code, python.Order.FUNCTION_CALL];
+      };
     }
+
+    defineVariadicMobjectBlock({
+      type: 'polygon',
+      label: 'Polygon',
+      itemLabel: 'vertex',
+      itemCheck: 'Point',
+      constructorName: 'Polygon',
+      defaultItems: 3,
+      colour: 230,
+      tooltip: "Creates a Polygon from its points. Click the gear icon to add or remove points."
+    });
+
     // VGroup is tagged with BOTH "Mobject" and "VGroup" - the first lets it
     // plug into any ordinary Mobject socket (Create, shift, set_fill, ...),
     // the second lets arrange/arrange_in_grid below restrict themselves to
     // only accept Groups, since those methods don't exist on a lone Mobject.
-    Blockly.Blocks['vgroup'] = {
-      init: function() {
-        this.appendDummyInput()
-            .appendField("Group")
-            .appendField("of");
-        this.appendValueInput('MOBJECTS')
-            .setCheck('Array');
-        this.setInputsInline(true);
-        this.setOutput(true, ["Mobject", "VGroup"]);
-        this.setColour(230);
-        this.setTooltip("Creates a Group from a list of Mobjects. Plug in a 'create list' block from the Lists category, then add Mobject blocks to it. Behaves like any other Mobject everywhere else.");
-      }
-    };
+    defineVariadicMobjectBlock({
+      type: 'vgroup',
+      label: 'Group',
+      itemLabel: 'object',
+      itemCheck: 'Mobject',
+      outputCheck: ["Mobject", "VGroup"],
+      constructorName: 'VGroup',
+      defaultItems: 2,
+      colour: 230,
+      tooltip: "Creates a Group from its Mobjects. Click the gear icon to add or remove members. Behaves like any other Mobject everywhere else."
+    });
 
     Blockly.Blocks['vgroup_add'] = {
       init: function() {
@@ -611,7 +727,7 @@
           .setCheck('Mobject');
         this.appendDummyInput('')
           .appendField(new Blockly.FieldDropdown(DIRECTIONS), 'DIR');
-        appendNumberInput(this, 'BUFF', 0.5, 'buff');
+        appendNumberInput(this, 'BUFF', 0.25, 'buff');
         this.setInputsInline(true)
         this.setPreviousStatement(true, ["Action", "Applyable"]);
         this.setNextStatement(true, ["Action", "Applyable"]);
@@ -761,21 +877,9 @@
   return [code, python.Order.FUNCTION_CALL];
     };
 
-    // Polygon
-    python.pythonGenerator.forBlock['polygon'] = function(block, generator) {
-      var points = generator.valueToCode(block, 'POINTS', python.Order.NONE) || '[]';
-      var code = 'Polygon(*' + points + ')';
-      return [code, python.Order.FUNCTION_CALL];
-    };
     python.pythonGenerator.forBlock['regular_polygon'] = function(block, generator) {
       var sides = numberValue(block, generator, 'SIDES', 3);
       var code = 'RegularPolygon(' + sides + ')';
-      return [code, python.Order.FUNCTION_CALL];
-    };
-    // VGroup
-    python.pythonGenerator.forBlock['vgroup'] = function(block, generator) {
-      var mobjects = generator.valueToCode(block, 'MOBJECTS', python.Order.NONE) || '[]';
-      var code = 'VGroup(*' + mobjects + ')';
       return [code, python.Order.FUNCTION_CALL];
     };
     python.pythonGenerator.forBlock['vgroup_add'] = function(block, generator) {
