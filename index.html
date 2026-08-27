@@ -110,6 +110,25 @@
       return generator.valueToCode(block, name, python.Order.NONE) || (fallback || 0);
     }
 
+    // Same idea as appendNumberInput/numberValue, but for Color-typed
+    // sockets. The shadow is a color_literal block (defined below), so a
+    // socket still looks and behaves like a plain swatch by default - until
+    // something else, like a color_gradient block or a color variable, gets
+    // dragged in to replace it.
+    function appendColorInput(block, name, defaultValue, beforeLabel, afterLabel) {
+      if (beforeLabel) block.appendDummyInput('').appendField(beforeLabel);
+      var input = block.appendValueInput(name).setCheck('Color');
+      input.connection.setShadowState({ type: 'color_literal', fields: { COLOR: defaultValue || '#ffffff' } });
+      if (afterLabel) block.appendDummyInput('').appendField(afterLabel);
+      return input;
+    }
+    // A Color-typed socket's connected code is already fully-formed Python
+    // (a quoted string, or a bracketed list for a gradient) - unlike plain
+    // fields, it never needs extra quoting by whatever reads it.
+    function colorValue(block, generator, name, fallback) {
+      return generator.valueToCode(block, name, python.Order.NONE) || ('"' + (fallback || '#ffffff') + '"');
+    }
+
     // ---- 1. Define the blocks ----
     Blockly.Blocks['circle'] = {
       init: function() {
@@ -385,6 +404,32 @@
       ["down", "DOWN"]
     ];
 
+    // A single color swatch, output-typed "Color". This is the same
+    // swatch-picker that used to live directly on set_stroke/set_fill's
+    // COLOR field - pulled out into its own block so it can also serve as
+    // the default shadow for any Color socket, and so a color_gradient
+    // (below) can hold a list of these.
+    Blockly.Blocks['color_literal'] = {
+      init: function() {
+        var field = Blockly.fieldRegistry.fromJson({
+          type: 'field_colour',
+          colour: '#ffffff',
+          colourOptions: MANIM_COLOR_PALETTE.options,
+          colourTitles: MANIM_COLOR_PALETTE.titles,
+          columns: 4
+        });
+        this.appendDummyInput().appendField(field, 'COLOR');
+        this.setOutput(true, "Color");
+        this.setColour(190);
+        this.setTooltip("A single color");
+      }
+    };
+    python.pythonGenerator.forBlock['color_literal'] = function(block, generator) {
+      var color = block.getFieldValue('COLOR');
+      var code = '"' + color + '"';
+      return [code, python.Order.FUNCTION_CALL];
+    };
+
     // Point Block //
     Blockly.Blocks['point'] = {
   init: function() {
@@ -515,7 +560,12 @@
         for (var i = 0; i < block.itemCount_; i++) {
           items.push(generator.valueToCode(block, 'ITEM' + i, python.Order.NONE) || 'None');
         }
-        var code = config.constructorName + '(' + items.join(', ') + ')';
+        // Most variadic blocks (Polygon, Group) become a function call.
+        // A few (like color_gradient) need a different shape, e.g. a plain
+        // Python list - config.wrap lets a block override that.
+        var code = config.wrap
+          ? config.wrap(items)
+          : config.constructorName + '(' + items.join(', ') + ')';
         return [code, python.Order.FUNCTION_CALL];
       };
     }
@@ -545,6 +595,21 @@
       defaultItems: 2,
       colour: 230,
       tooltip: "Creates a Group from its Mobjects. Click the gear icon to add or remove members. Behaves like any other Mobject everywhere else."
+    });
+
+    // A gradient is just a list of Color-typed stops, reusing the exact
+    // same mutator machinery as Polygon/Group above - only the item type
+    // and the final wrapping (a Python list, not a function call) differ.
+    defineVariadicMobjectBlock({
+      type: 'color_gradient',
+      label: 'Gradient',
+      itemLabel: 'color',
+      itemCheck: 'Color',
+      outputCheck: 'Color',
+      defaultItems: 2,
+      colour: 190,
+      tooltip: "Creates a color gradient from 2 or more colors. Click the gear icon to add or remove stops.",
+      wrap: function(items) { return '[' + items.join(', ') + ']'; }
     });
 
     Blockly.Blocks['vgroup_add'] = {
@@ -597,19 +662,15 @@
               appendNumberInput(this, f.name, f.default, f.before, f.after);
               return;
             }
+            if (f.kind === 'colour') {
+              appendColorInput(this, f.name, f.default, f.before, f.after);
+              return;
+            }
             var input = this.appendDummyInput('');
             if (f.before) input.appendField(f.before);
             var field;
             if (f.kind === 'dropdown') {
               field = new Blockly.FieldDropdown(f.options);
-            } else if (f.kind === 'colour') {
-              field = Blockly.fieldRegistry.fromJson({
-                type: 'field_colour',
-                colour: f.default || '#ffffff',
-                colourOptions: f.colourOptions || MANIM_COLOR_PALETTE.options,
-                colourTitles: f.colourTitles || MANIM_COLOR_PALETTE.titles,
-                columns: f.columns || 4
-              });
             } else {
               field = new Blockly.FieldNumber(f.default, f.min, f.max, f.precision);
             }
@@ -628,9 +689,13 @@
         var mobject = generator.valueToCode(block, 'MOBJECT', python.Order.NONE) || 'None';
         var vals = {};
         config.fields.forEach(function(f) {
-          vals[f.name] = (f.kind === 'number')
-            ? numberValue(block, generator, f.name, f.default)
-            : block.getFieldValue(f.name);
+          if (f.kind === 'number') {
+            vals[f.name] = numberValue(block, generator, f.name, f.default);
+          } else if (f.kind === 'colour') {
+            vals[f.name] = colorValue(block, generator, f.name, f.default);
+          } else {
+            vals[f.name] = block.getFieldValue(f.name);
+          }
         });
         var call = config.buildCall(vals);
         if (isInsideApplyAnimation(block)) {
@@ -822,7 +887,7 @@
         { name: 'WIDTH', kind: 'number', default: 4, min: 0, before: 'width' },
         { name: 'OPACITY', kind: 'number', default: 1, min: 0, max: 1, precision: 0.1, before: 'opacity' }
       ],
-      buildCall: function(v) { return '.set_stroke(color="' + v.COLOR + '", width=' + v.WIDTH + ', opacity=' + v.OPACITY + ')'; }
+      buildCall: function(v) { return '.set_stroke(color=' + v.COLOR + ', width=' + v.WIDTH + ', opacity=' + v.OPACITY + ')'; }
     });
 
     defineMobjectMethodBlock({
@@ -833,7 +898,7 @@
         { name: 'COLOR', kind: 'colour', default: '#ffffff', before: 'set fill color' },
         { name: 'OPACITY', kind: 'number', default: 1, min: 0, max: 1, precision: 0.1, before: 'opacity' }
       ],
-      buildCall: function(v) { return '.set_fill(color="' + v.COLOR + '", opacity=' + v.OPACITY + ')'; }
+      buildCall: function(v) { return '.set_fill(color=' + v.COLOR + ', opacity=' + v.OPACITY + ')'; }
     });
 
 
@@ -1121,7 +1186,9 @@
           "colour": "190",
           "contents": [
             {"kind": "block", "type": "set_stroke"},
-            {"kind": "block", "type": "set_fill"}
+            {"kind": "block", "type": "set_fill"},
+            {"kind": "block", "type": "color_literal"},
+            {"kind": "block", "type": "color_gradient"}
           ]
         },
         {"kind": "sep"},
