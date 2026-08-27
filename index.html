@@ -273,6 +273,43 @@
       colour: 260,
       anim: 'Unwrite'
     })
+      defineAnimationBlock({
+      type: 'anim_grow_from_center',
+      name: 'Grow from center',
+      colour: 260,
+      anim: 'GrowFromCenter'
+    })
+    defineAnimationBlock({
+      type: 'anim_shrink_to_center',
+      name: 'Shrink to center',
+      colour: 260,
+      anim: 'ShrinkToCenter'
+    })
+    defineAnimationBlock({
+      type: 'anim_wiggle',
+      name: 'Wiggle',
+      colour: 260,
+      anim: 'Wiggle'
+    })
+    defineAnimationBlock({
+      type: 'anim_spin_in_from_nothing',
+      name: 'Spin in from nothing',
+      colour: 260,
+      anim: 'SpinInFromNothing'
+    })
+    defineAnimationBlock({
+      type: 'anim_flash',
+      name: 'Flash',
+      colour: 260,
+      anim: 'Flash'
+    })
+    defineAnimationBlock({
+      type: 'anim_circumscribe',
+      name: 'Circumscribe',
+      colour: 260,
+      anim: 'Circumscribe'
+    })
+
     Blockly.Blocks['anim_transform'] = 
     {
       init: function() {
@@ -1030,7 +1067,9 @@
     };
     python.pythonGenerator.forBlock['animation_group'] = function(block, generator) {
       var lagRatio = numberValue(block, generator, 'LAG_RATIO', 0);
-      var allowedTypes = ['anim_create', 'anim_uncreate', 'anim_fadein', 'anim_fadeout', 'anim_write', 'anim_unwrite', 'anim_transform', 'anim_replace', 'apply_animation'];
+      var allowedTypes = ['anim_create', 'anim_uncreate', 'anim_fadein', 'anim_fadeout', 'anim_write', 'anim_unwrite', 'anim_transform', 'anim_replace', 'apply_animation',
+        'anim_grow_from_center', 'anim_spin_in_from_nothing', 'anim_wiggle', 'anim_flash', 'anim_circumscribe', 'anim_shrink_to_center', 'anim_copy_transform'
+      ];
       var innerBlock = block.getInputTargetBlock('ANIMATIONS');
       while (innerBlock) {
         if (allowedTypes.indexOf(innerBlock.type) === -1) {
@@ -1133,18 +1172,37 @@
           "name": "Animations",
           "colour": "260",
           "contents": [
+            {"kind": "label", "text": "Creation"},
             { "kind": "block", "type": "anim_create" },
-            { "kind": "block", "type": "anim_uncreate" },
             { "kind": "block", "type": "anim_fadein" },
-            { "kind": "block", "type": "anim_fadeout" },
             { "kind": "block", "type": "anim_write" },
+            { "kind": "block", "type": "anim_grow_from_center" },
+            { "kind": "block", "type": "anim_spin_in_from_nothing" },
+            {"kind": "sep", "gap": "32"},
+
+            {"kind": "label", "text": "Indication"},
+            { "kind": "block", "type": "anim_wiggle" },
+            { "kind": "block", "type": "anim_flash" },
+            { "kind": "block", "type": "anim_circumscribe" },
+            {"kind": "sep", "gap": "32"},
+
+            {"kind": "label", "text": "Removal"},
+            { "kind": "block", "type": "anim_uncreate" },
+            { "kind": "block", "type": "anim_fadeout" },
             { "kind": "block", "type": "anim_unwrite" },
-            { "kind": "block", "type": "anim_wait" },
+            { "kind": "block", "type": "anim_shrink_to_center" },
+            {"kind": "sep", "gap": "32"},
+
+            {"kind": "label", "text": "Transformation"},
             { "kind": "block", "type": "anim_transform"},
             { "kind": "block", "type": "anim_copy_transform"},
             { "kind": "block", "type": "anim_replace"},
+            {"kind": "sep", "gap": "32"},
+
+            {"kind": "label", "text": "Other"},
+            { "kind": "block", "type": "apply_animation" },
             { "kind": "block", "type": "animation_group" },
-            { "kind": "block", "type": "apply_animation" }
+            { "kind": "block", "type": "anim_wait" }
           ]
         },
         {
