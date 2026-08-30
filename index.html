@@ -12,6 +12,8 @@
       margin: 20px;
       box-sizing: border-box;
       height: calc(100vh - 40px);
+      background: #1e1e1e;
+      color: #e0e0e0;
     }
     .container {
       display: grid;
@@ -30,7 +32,7 @@
       width: 100%;
       flex: 1;
       min-height: 0;
-      border: 1px solid #ccc;
+      border: 1px solid #444;
     }
     #resultVideo {
       width: 100%;
@@ -38,20 +40,42 @@
       background: #000;
     }
     #outputArea {
-      background: #f5f5f5;
+      background: #2a2a2a;
+      color: #e0e0e0;
       padding: 10px;
       max-height: 40vh;
       overflow-y: auto;
       overflow-x: auto;
       white-space: pre-wrap;
       word-break: break-word;
+      border: 1px solid #444;
     }
     #statusMessage {
       min-height: 20px;
       font-size: 14px;
     }
     #statusMessage.error {
-      color: #c0392b;
+      color: #ff6b6b;
+    }
+    button, select {
+      background: #333;
+      color: #e0e0e0;
+      border: 1px solid #555;
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-family: inherit;
+      font-size: 14px;
+    }
+    button:hover {
+      background: #444;
+      cursor: pointer;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+    a {
+      color: #8ab4f8;
     }
   </style>
 </head>
@@ -87,6 +111,7 @@
   <script src="https://unpkg.com/blockly/python_compressed.js"></script>
   <script src="https://unpkg.com/blockly/msg/en.js"></script>
   <script src="https://unpkg.com/@blockly/field-colour"></script>
+  <script src="https://unpkg.com/@blockly/theme-dark"></script>
 
   <script>
     registerFieldColour();
@@ -1363,7 +1388,8 @@
     };
 
     var workspace = Blockly.inject('blocklyDiv', {
-      toolbox: toolbox
+      toolbox: toolbox,
+      theme: 'dark'
     });
     window.dispatchEvent(new Event('resize'));
 
