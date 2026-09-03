@@ -28,27 +28,19 @@
       min-height: 0;
       min-width: 0;
     }
-    #blocklyDiv {
+    #blocklyDiv, #codeEditorDiv {
       width: 100%;
       flex: 1;
       min-height: 0;
       border: 1px solid #444;
     }
+    .hidden {
+      display: none !important;
+    }
     #resultVideo {
       width: 100%;
       aspect-ratio: 16 / 9;
       background: #000;
-    }
-    #outputArea {
-      background: #2a2a2a;
-      color: #e0e0e0;
-      padding: 10px;
-      max-height: 40vh;
-      overflow-y: auto;
-      overflow-x: auto;
-      white-space: pre-wrap;
-      word-break: break-word;
-      border: 1px solid #444;
     }
     #statusMessage {
       min-height: 20px;
@@ -74,9 +66,6 @@
       opacity: 0.5;
       cursor: default;
     }
-    a {
-      color: #8ab4f8;
-    }
   </style>
 </head>
 <body>
@@ -86,9 +75,11 @@
       <div id="workspaceToolbar">
         <button id="saveButton">Save</button>
         <button id="clearButton">Clear Workspace</button>
+        <button id="viewToggleButton">Code</button>
         <span id="saveStatus"></span>
       </div>
       <div id="blocklyDiv"></div>
+      <div id="codeEditorDiv" class="hidden"></div>
     </div>
     <div class="column">
       <video id="resultVideo" controls></video>
@@ -101,8 +92,6 @@
         <option value="qk">4k</option>
       </select>
       <div id="statusMessage"></div>
-      <button id="showCodeButton">Show Generated Code</button>
-      <pre id="outputArea"></pre>
     </div>
   </div>
 
@@ -112,9 +101,27 @@
   <script src="https://unpkg.com/blockly/msg/en.js"></script>
   <script src="https://unpkg.com/@blockly/field-colour"></script>
   <script src="https://unpkg.com/@blockly/theme-dark"></script>
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@latest/min/vs/loader.js"></script>
 
   <script>
     registerFieldColour();
+
+    // ---- Code editor (Monaco, the actual VSCode editor component) ----
+    // Monaco loads asynchronously via an AMD-style loader, unlike Blockly's
+    // scripts which attach a global immediately - so codeEditor stays null
+    // until this callback fires, and the toggle button below has to guard
+    // against being clicked before that happens.
+    var codeEditor = null;
+    require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@latest/min/vs' } });
+    require(['vs/editor/editor.main'], function () {
+      codeEditor = monaco.editor.create(document.getElementById('codeEditorDiv'), {
+        value: '',
+        language: 'python',
+        theme: 'vs-dark',
+        automaticLayout: true,
+        fontSize: 14
+      });
+    });
 
     // Appends a Number-typed socket instead of a plain field, pre-filled with a
     // "shadow" math_number block showing the default value. A shadow block looks
@@ -1431,13 +1438,43 @@
       localStorage.removeItem(STORAGE_KEY);
     });
 
-    // ---- 4. Generate Python ----
-    document.getElementById('showCodeButton').addEventListener('click', function() {
-      var code = python.pythonGenerator.workspaceToCode(workspace);
-      document.getElementById('outputArea').textContent = code;
+    // ---- View toggle: Blocks <-> Code ----
+    // One-way relationship: switching to Code shows whatever the blocks
+    // currently generate. Editing that code and switching back to Blocks
+    // does NOT change the blocks - there's no way to parse arbitrary
+    // hand-edited Python back into a block structure. Render (below)
+    // checks which view is active and sends the editor's text when in
+    // Code view, so manual edits actually take effect when rendering.
+    var viewMode = 'blocks';
+    document.getElementById('viewToggleButton').addEventListener('click', function() {
+      var toggleButton = document.getElementById('viewToggleButton');
+      var blocklyDiv = document.getElementById('blocklyDiv');
+      var codeEditorDiv = document.getElementById('codeEditorDiv');
+
+      if (viewMode === 'blocks') {
+        if (!codeEditor) {
+          alert('The code editor is still loading - try again in a moment.');
+          return;
+        }
+        var code = python.pythonGenerator.workspaceToCode(workspace);
+        codeEditor.setValue(code);
+        blocklyDiv.classList.add('hidden');
+        codeEditorDiv.classList.remove('hidden');
+        codeEditor.layout();
+        viewMode = 'code';
+        toggleButton.textContent = 'Blocks';
+      } else {
+        codeEditorDiv.classList.add('hidden');
+        blocklyDiv.classList.remove('hidden');
+        window.dispatchEvent(new Event('resize'));
+        viewMode = 'blocks';
+        toggleButton.textContent = 'Code';
+      }
     });
     document.getElementById('renderButton').addEventListener('click', function() {
-      var code = python.pythonGenerator.workspaceToCode(workspace);
+      var code = (viewMode === 'code' && codeEditor)
+        ? codeEditor.getValue()
+        : python.pythonGenerator.workspaceToCode(workspace);
       var renderButton = document.getElementById('renderButton');
       var statusMessage = document.getElementById('statusMessage');
       var quality = document.getElementById('qual');
